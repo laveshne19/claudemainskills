@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neural Desk Tally Connect</title>
+<meta name="description" content="Upload Excel or PDF, review, and post into TallyPrime. Every entry proven against the party balance.">
+<style>
+:root{
+  --bg:#f5f6fa;--surface:#fff;--surface2:#f0f2f8;--ink:#101828;--muted:#5d6b82;--line:#e3e7ef;
+  --primary:#3446d4;--primary-ink:#fff;--primary-soft:#e9ecff;
+  --ok:#0f9d58;--ok-soft:#e3f6ec;--warn:#b76e00;--warn-soft:#fff3da;--bad:#c9372c;--bad-soft:#fde8e6;--dup:#5d6b82;--dup-soft:#eceff5;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);--radius:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c111c;--surface:#131a29;--surface2:#1a2234;--ink:#eef1f8;--muted:#9aa7c0;--line:#243049;
+  --primary:#7b8cff;--primary-ink:#0c111c;--primary-soft:#1d2550;
+  --ok:#3ccf8a;--ok-soft:#10301f;--warn:#f5b546;--warn-soft:#352610;--bad:#ff7b70;--bad-soft:#3a1714;--dup:#9aa7c0;--dup-soft:#1c2438;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{
+  --bg:#0c111c;--surface:#131a29;--surface2:#1a2234;--ink:#eef1f8;--muted:#9aa7c0;--line:#243049;
+  --primary:#7b8cff;--primary-ink:#0c111c;--primary-soft:#1d2550;
+  --ok:#3ccf8a;--ok-soft:#10301f;--warn:#f5b546;--warn-soft:#352610;--bad:#ff7b70;--bad-soft:#3a1714;--dup:#9aa7c0;--dup-soft:#1c2438;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:8px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+h1,h2,h3{line-height:1.15;margin:0;letter-spacing:-.02em}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:10px 16px;border-radius:11px;font-weight:600;text-decoration:none;transition:transform .08s,box-shadow .15s,background .15s}
+.btn:hover{box-shadow:var(--shadow)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:14px;border-radius:9px}
+.btn[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.dup{background:var(--dup-soft);color:var(--dup)}
+.pill.info{background:var(--primary-soft);color:var(--primary)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:30;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;text-decoration:none;white-space:nowrap}
+.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--primary),#14b8a6);display:grid;place-items:center;color:#fff;font-size:16px}
+.nav .links{display:flex;gap:20px;margin-left:12px}
+.nav .links a{text-decoration:none;color:var(--muted);font-weight:500}
+.nav .links a:hover{color:var(--ink)}
+.nav .sp{flex:1}
+@media(max-width:820px){.nav .links{display:none}}
+@media(max-width:560px){#themeBtn{display:none}.nav .wrap{gap:10px}.mock .file{flex-wrap:wrap}.hero .proof{gap:8px 16px}}
+
+/* ---------- landing ---------- */
+.hero{padding:72px 0 40px}
+.hero .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;background:var(--primary-soft);color:var(--primary);padding:6px 12px;border-radius:99px;font-weight:600;font-size:14px;margin-bottom:18px}
+.hero h1{font-size:clamp(34px,5.2vw,56px)}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--primary),#14b8a6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:19px;color:var(--muted);max-width:560px;margin:18px 0 26px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.hero .proof{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-size:14px}
+.hero .proof span::before{content:"✓";color:var(--ok);font-weight:800;margin-right:6px}
+@media(max-width:920px){.hero .grid{grid-template-columns:1fr}.hero{padding-top:44px}}
+.mock{padding:16px;overflow:hidden}
+.mock .bar{display:flex;gap:6px;margin-bottom:12px}.mock .bar i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.mock .file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;margin-bottom:10px;font-weight:600}
+.mock .row{display:grid;grid-template-columns:78px 1fr auto auto;gap:10px;align-items:center;padding:9px 6px;border-top:1px solid var(--line);font-size:14px;opacity:0;transform:translateY(6px);animation:rise .5s forwards}
+.mock .row:nth-child(4){animation-delay:.2s}.mock .row:nth-child(5){animation-delay:.5s}.mock .row:nth-child(6){animation-delay:.8s}.mock .row:nth-child(7){animation-delay:1.1s}
+@keyframes rise{to{opacity:1;transform:none}}
+.mock .proofline{margin-top:12px;padding:10px 12px;background:var(--ok-soft);color:var(--ok);border-radius:10px;font-weight:600;font-size:14px}
+@media(prefers-reduced-motion:reduce){.mock .row{animation:none;opacity:1;transform:none}}
+section.block{padding:64px 0}
+section.block h2{font-size:clamp(26px,3.4vw,38px);margin-bottom:12px}
+section.block .sub{color:var(--muted);max-width:640px;font-size:18px;margin:0 0 36px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.step{padding:22px}.step b{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--primary-soft);color:var(--primary);margin-bottom:14px}
+.step h3{font-size:18px;margin-bottom:6px}.step p{margin:0;color:var(--muted);font-size:15px}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat .card{padding:22px}.feat h3{font-size:18px;margin:10px 0 6px}.feat p{margin:0;color:var(--muted);font-size:15px}
+.feat .ic{font-size:24px}
+@media(max-width:920px){.steps{grid-template-columns:1fr 1fr}.feat{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.steps,.feat{grid-template-columns:1fr}}
+.works{display:flex;gap:12px;flex-wrap:wrap;align-items:center;color:var(--muted);font-weight:600}
+.works .pill{font-size:14px}
+.price{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch}
+.plan{padding:24px;display:flex;flex-direction:column;gap:12px}
+.plan.hot{border:2px solid var(--primary);position:relative}
+.plan.hot::before{content:"Most picked";position:absolute;top:-12px;left:20px;background:var(--primary);color:var(--primary-ink);font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px}
+.plan h3{font-size:18px}.plan .amt{font-size:34px;font-weight:800;letter-spacing:-.03em}.plan .amt small{font-size:15px;font-weight:500;color:var(--muted)}
+.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;color:var(--muted);font-size:15px;flex:1}
+.plan li::before{content:"✓";color:var(--ok);font-weight:800;margin-right:8px}
+@media(max-width:1000px){.price{grid-template-columns:1fr 1fr}}@media(max-width:560px){.price{grid-template-columns:1fr}}
+details.faq{border-bottom:1px solid var(--line);padding:16px 0}
+details.faq summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details.faq summary::after{content:"+";color:var(--muted);font-size:22px;line-height:1}
+details[open].faq summary::after{content:"–"}
+details.faq p{color:var(--muted);margin:10px 0 0;max-width:760px}
+footer{padding:40px 0 60px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+.demo-note{background:var(--warn-soft);color:var(--warn);padding:8px 14px;font-size:14px;text-align:center;font-weight:600}
+
+/* ---------- app ---------- */
+#app{display:none;min-height:100vh}
+#app.on{display:grid;grid-template-columns:248px 1fr}
+.side{background:var(--surface);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.side .brand{padding:6px 8px 16px}
+.side button.nv{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:10px;color:var(--muted);font-weight:600}
+.side button.nv:hover{background:var(--surface2);color:var(--ink)}
+.side button.nv.on{background:var(--primary-soft);color:var(--primary)}
+.side .badge{margin-left:auto;background:var(--warn-soft);color:var(--warn);border-radius:99px;font-size:12px;padding:1px 8px;font-weight:700}
+.side .foot{margin-top:auto;display:grid;gap:8px}
+.main{min-width:0}
+.top{display:flex;align-items:center;gap:12px;padding:14px 28px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:20;flex-wrap:wrap}
+.top h1{font-size:20px}
+.top .sp{flex:1}
+.page{padding:26px 28px 80px;max-width:1180px}
+.hamb{display:none}
+@media(max-width:900px){
+  #app.on{grid-template-columns:1fr}
+  .side{position:fixed;inset:0 auto 0 0;width:260px;transform:translateX(-100%);transition:transform .2s;z-index:50;height:100%}
+  .side.open{transform:none}
+  .hamb{display:inline-flex}
+  .page{padding:20px 16px 80px}.top{padding:12px 16px}
+}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{padding:18px}.kpi .v{font-size:28px;font-weight:800;letter-spacing:-.03em}.kpi .l{color:var(--muted);font-size:14px}
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}}
+.two{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.panel{padding:20px}.panel h2{font-size:17px;margin-bottom:12px}
+.list{display:grid;gap:0}.list .it{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.list .it:first-child{border-top:0}
+.grow{flex:1;min-width:0}
+.drop{border:2px dashed var(--line);border-radius:16px;padding:34px 20px;text-align:center;background:var(--surface2);transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--primary);background:var(--primary-soft)}
+.drop .big{font-size:34px}
+select,input[type=text],input[type=email],input[type=password],input[type=date]{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+label.f{display:grid;gap:6px;font-weight:600;font-size:14px}
+label.f span.h{font-weight:400;color:var(--muted)}
+.seg{display:inline-flex;background:var(--surface2);border-radius:11px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:7px 13px;border-radius:9px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.stepper{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.stepper .s{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600;font-size:14px}
+.stepper .s i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--surface2);font-style:normal;font-size:13px}
+.stepper .s.on{color:var(--ink)}.stepper .s.on i{background:var(--primary);color:var(--primary-ink)}
+.stepper .s.done i{background:var(--ok);color:#fff}
+.stepper .sep{width:24px;height:1px;background:var(--line);align-self:center}
+.sortlist{display:grid;gap:10px;max-width:560px;margin:0 auto}
+.sortlist .r{display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.spin{width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.tick{width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+.todo{width:18px;height:18px;border-radius:50%;border:2px solid var(--line)}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 13px;font-weight:600;font-size:14px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tbl{width:100%;border-collapse:separate;border-spacing:0}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);background:var(--surface2);position:sticky;top:0}
+.tbl td:nth-child(-n+2){white-space:nowrap}
+.tbl td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr.rw{cursor:pointer}.tbl tr.rw:hover td{background:var(--surface2)}
+.tbl .r{text-align:right}
+.tblwrap{overflow:auto;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface)}
+.detail td{background:var(--surface2);padding:16px 18px}
+.detail .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.detail .cols{grid-template-columns:1fr}.tbl .hide-s{display:none}}
+.mini{width:100%;font-size:14px;border-collapse:collapse}.mini td,.mini th{padding:5px 0;text-align:left;border-bottom:1px solid var(--line)}.mini .r{text-align:right}
+.ask{margin-top:10px;background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);padding:14px;border-radius:12px}
+.ask .opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.form2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+@media(max-width:600px){.form2{grid-template-columns:1fr}}
+.postrow{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.bar{height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#14b8a6);width:0;transition:width .4s}
+.steplist{counter-reset:s;display:grid;gap:12px}
+.steplist .t{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.steplist .t i{font-style:normal;width:34px;height:34px;border-radius:10px;background:var(--surface2);display:grid;place-items:center;font-weight:800}
+.steplist .t.ok i{background:var(--ok-soft);color:var(--ok)}
+.toggle{position:relative;width:44px;height:26px;flex:none}.toggle input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:1}
+.toggle span{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.15s}.toggle span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.15s}
+.toggle input:checked+span{background:var(--primary)}.toggle input:checked+span::after{transform:translateX(18px)}
+.meter{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}.meter i{display:block;height:100%;background:var(--primary)}
+dialog{border:1px solid var(--line);border-radius:18px;padding:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);max-width:min(440px,92vw);width:100%}
+dialog::backdrop{background:rgba(8,12,22,.55)}
+dialog .in{padding:26px;display:grid;gap:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);opacity:0;background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:600;z-index:100;transition:.25s;pointer-events:none;max-width:92vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.demo{position:fixed;right:16px;bottom:16px;z-index:60}
+.demo .box{position:absolute;right:0;bottom:48px;width:290px;padding:16px;display:none;gap:12px}
+.demo.open .box{display:grid}
+.demo .fab{border-radius:99px;background:var(--ink);color:var(--bg);border:0;padding:10px 16px;font-weight:700;box-shadow:var(--shadow)}
+.help{align-content:start;border:1px dashed var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;background:var(--surface2)}
+.shot{max-width:220px;border-radius:10px;border:1px solid var(--line)}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div class="demo-note" id="demoNote">Design preview with made up data. Nothing here connects to a real Tally or takes payment.</div>
+
+<!-- =================== LANDING =================== -->
+<div id="landing">
+<header class="nav"><div class="wrap">
+  <a class="brand" href="#top"><span class="logo">N</span>Neural Desk</a>
+  <nav class="links" aria-label="Sections"><a href="#how">How it works</a><a href="#features">Why it is safe</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+  <span class="sp"></span>
+  <button class="btn ghost sm" id="themeBtn" aria-label="Switch light or dark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
+  <button class="btn sm" data-auth="in">Sign in</button>
+  <button class="btn primary sm" data-auth="up">Start free</button>
+</div></header>
+
+<main id="top">
+<section class="hero"><div class="wrap grid">
+  <div>
+    <span class="eyebrow">Works with TallyPrime</span>
+    <h1>Stop typing invoices into <em>Tally</em>.</h1>
+    <p class="lead">Upload your sales, purchase, credit note, debit note, receipt and payment files. We sort them, check every number, and post them into TallyPrime once you approve. Each entry is proven against the party balance.</p>
+    <div class="cta">
+      <button class="btn primary" data-auth="demo">Try the live demo</button>
+      <a class="btn" href="#how">See how it works</a>
+    </div>
+    <div class="proof"><span>Runs next to your Tally</span><span>Nothing posts without your yes</span><span>Duplicates refused</span></div>
+  </div>
+  <div class="card mock" aria-label="Example of the review screen">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <div class="file">📄 August_sales.xlsx <span class="muted" style="margin-left:auto;font-weight:500">9 invoices read</span></div>
+    <div class="row" style="border-top:0;opacity:1;transform:none;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em"><span>No.</span><span>Party</span><span>Total</span><span>Status</span></div>
+    <div class="row"><b>INV-2201</b><span>Sharma Telecom</span><span class="num">₹4,220</span><span class="pill ok"><i class="dot"></i>Ready</span></div>
+    <div class="row"><b>INV-2204</b><span>Ankur Srivastav</span><span class="num">₹6,000</span><span class="pill warn"><i class="dot"></i>Held</span></div>
+    <div class="row"><b>INV-2206</b><span>Kaur Mobile Shop</span><span class="num">₹20,000</span><span class="pill dup"><i class="dot"></i>Duplicate</span></div>
+    <div class="row"><b>INV-2208</b><span>Online Marketplace</span><span class="num">₹35,040</span><span class="pill ok"><i class="dot"></i>Ready</span></div>
+    <div class="proofline">Posted INV-2201. Balance moved by exactly ₹4,220.00 ✓</div>
+  </div>
+</div></section>
+
+<section class="block" style="padding-top:20px"><div class="wrap">
+  <div class="works"><span>Works with</span><span class="pill info">TallyPrime</span><span class="pill info">Zoho Books</span><span class="pill dup">Busy · coming soon</span><span class="pill dup">Excel · CSV · PDF · photos</span></div>
+</div></section>
+
+<section class="block" id="how"><div class="wrap">
+  <h2>Four steps, about two minutes a batch</h2>
+  <p class="sub">The first time takes ten minutes to connect. After that it is the same routine every day.</p>
+  <div class="steps">
+    <div class="card step"><b>1</b><h3>Connect</h3><p>Install the small Windows helper next to Tally. The site shows "Tally connected" when it can see your company.</p></div>
+    <div class="card step"><b>2</b><h3>Upload</h3><p>Drop an Excel, CSV, PDF or photos. Hundreds of invoices in one go is fine.</p></div>
+    <div class="card step"><b>3</b><h3>Review</h3><p>Every document is sorted into ready, held, duplicate or error. Held ones come with a plain question.</p></div>
+    <div class="card step"><b>4</b><h3>Post and prove</h3><p>One click posts the approved ones. Each is checked against the party balance in Tally.</p></div>
+  </div>
+</div></section>
+
+<section class="block" id="features" style="background:var(--surface)"><div class="wrap">
+  <h2>Built by people who keep books in Tally</h2>
+  <p class="sub">The rules come from months of daily use on real books, including the mistakes that cost real time.</p>
+  <div class="feat">
+    <div class="card"><div class="ic">🔍</div><h3>Preview before anything is written</h3><p>You see the exact entry, the GST lines and the ledger it will hit. Nothing moves until you approve.</p></div>
+    <div class="card"><div class="ic">🧾</div><h3>Balance proof on every entry</h3><p>After posting, the party balance must change by exactly the invoice amount. If not, everything stops.</p></div>
+    <div class="card"><div class="ic">🚫</div><h3>No duplicates</h3><p>Checked against our log and Tally's own Day Book before each entry. The same payment is never posted twice.</p></div>
+    <div class="card"><div class="ic">🧠</div><h3>Matches names like a person</h3><p>GSTIN first, then similar names. "Pvt Ltd" versus "Private Limited" and colour words are handled.</p></div>
+    <div class="card"><div class="ic">🛑</div><h3>Never invents ledgers</h3><p>A party or item that is not in Tally is held and put to you. New ledgers are created complete, not as a bare name.</p></div>
+    <div class="card"><div class="ic">🧮</div><h3>GST done right</h3><p>Ship to state decides IGST or CGST with SGST, with UTGST for union territories. Paise go to round off.</p></div>
+  </div>
+</div></section>
+
+<section class="block" id="pricing"><div class="wrap">
+  <h2>Pricing you can explain to your accountant</h2>
+  <p class="sub">Start free with sample data. Sample prices shown for review. Final pricing is yet to be fixed.</p>
+  <div class="price">
+    <div class="card plan"><h3>Monthly</h3><div class="amt">₹999<small> /month</small></div><ul><li>1 Tally company</li><li>Up to 500 entries a month</li><li>Excel, CSV, PDF</li><li>Email support</li></ul><button class="btn" data-auth="up">Start monthly</button></div>
+    <div class="card plan hot"><h3>Yearly</h3><div class="amt">₹7,999<small> /year</small></div><ul><li>1 Tally company</li><li>Up to 6,000 entries a year</li><li>Everything in Monthly</li><li>Priority fixes</li><li>Save about a third</li></ul><button class="btn primary" data-auth="up">Start yearly</button></div>
+    <div class="card plan"><h3>Lifetime</h3><div class="amt">₹24,999<small> once</small></div><ul><li>1 Tally company</li><li>This major version, forever</li><li>Fair use limit</li><li>Free minor updates</li></ul><button class="btn" data-auth="up">Get lifetime</button></div>
+    <div class="card plan"><h3>For accountants</h3><div class="amt">Let's talk</div><ul><li>10 or more companies</li><li>Client switcher</li><li>Team seats</li><li>Onboarding call</li></ul><button class="btn" data-auth="up">Ask us</button></div>
+  </div>
+</div></section>
+
+<section class="block" id="faq" style="padding-top:0"><div class="wrap" style="max-width:820px">
+  <h2 style="margin-bottom:18px">Questions people ask</h2>
+  <details class="faq"><summary>Does my accounting data leave my computer?</summary><p>Tally stays on your PC. The helper reads it locally and sends only what the review screen needs. Uploads are deleted after processing. You can also use the Claude plugin version, which runs fully on your machine.</p></details>
+  <details class="faq"><summary>What if Tally gives an error or the voucher looks different?</summary><p>Take a screenshot and drop it in the help box. We compare it with what was posted, find the difference, and fix the setting. Then you see one test entry before the rest.</p></details>
+  <details class="faq"><summary>Which Tally versions work?</summary><p>TallyPrime Silver and Gold. The Educational edition cuts off date ranges, which breaks duplicate checks, so it is not supported.</p></details>
+  <details class="faq"><summary>Can it post receipts, payments and credit notes too?</summary><p>Yes. Sales, purchase, credit notes, debit notes, receipts and payments. Journal and contra are coming.</p></details>
+  <details class="faq"><summary>What about Busy?</summary><p>Busy support is planned. It works through Busy's own import files, so we need sample files from real Busy users. Join the waitlist inside the app.</p></details>
+  <details class="faq"><summary>Who is responsible for the entries?</summary><p>You approve every entry, and your accountant stays responsible for your books. We make the typing fast and the checks strict.</p></details>
+</div></section>
+</main>
+<footer><div class="wrap">© Neural Desk. Tally and TallyPrime are trademarks of Tally Solutions. This site is not affiliated with or endorsed by them.</div></footer>
+</div>
+
+<!-- =================== APP =================== -->
+<div id="app">
+  <aside class="side" id="side">
+    <a class="brand" href="#/app/dashboard"><span class="logo">N</span>Neural Desk</a>
+    <button class="nv" data-go="dashboard">🏠 Dashboard</button>
+    <button class="nv" data-go="import">⬆️ Upload and import</button>
+    <button class="nv" data-go="queue">❓ Held items <span class="badge" id="heldBadge">0</span></button>
+    <button class="nv" data-go="history">🕘 History</button>
+    <button class="nv" data-go="connection">🔌 Connection</button>
+    <button class="nv" data-go="settings">⚙️ Settings</button>
+    <button class="nv" data-go="billing">💳 Plan and billing</button>
+    <div class="foot">
+      <button class="btn sm" id="themeBtn2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg> Light / dark</button>
+      <button class="btn sm ghost" id="signOut">Sign out</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <button class="btn sm hamb" id="hamb" aria-label="Menu">☰</button>
+      <h1 id="title">Dashboard</h1>
+      <span class="sp"></span>
+      <select id="company" aria-label="Company" style="width:auto"><option>Demo Traders Pvt Ltd</option><option>Demo Traders (Haryana)</option></select>
+      <span id="conn" class="pill ok"><i class="dot"></i>Tally connected</span>
+    </div>
+    <div class="page" id="page"></div>
+  </div>
+</div>
+
+<dialog id="auth"><form method="dialog" class="in" id="authForm">
+  <h2 id="authTitle" style="font-size:22px">Create your account</h2>
+  <p class="muted" style="margin:0" id="authSub">Free to try. No card needed.</p>
+  <label class="f">Email<input type="email" id="em" placeholder="you@yourfirm.in" autocomplete="email"></label>
+  <label class="f">Password<input type="password" id="pw" placeholder="At least 8 characters" autocomplete="new-password"></label>
+  <button class="btn primary" type="submit">Continue</button>
+  <button class="btn" type="button" id="useDemo">Skip, use the demo account</button>
+  <button class="btn ghost sm" type="button" id="authSwitch">I already have an account</button>
+</form></dialog>
+
+<dialog id="confirmDlg"><div class="in">
+  <h2 style="font-size:20px" id="cfTitle">Post to Tally?</h2>
+  <div id="cfBody" class="muted"></div>
+  <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cfCheck" style="margin-top:5px"> <span>I have reviewed these entries and approve posting them.</span></label>
+  <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" id="cfNo">Cancel</button><button class="btn primary" id="cfYes" disabled>Post now</button></div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="demo" id="demoCtl" hidden>
+  <div class="card box"><b>Demo controls</b>
+    <label style="display:flex;gap:10px;align-items:center;justify-content:space-between">Tally is offline <span class="toggle"><input type="checkbox" id="dOffline"><span></span></span></label>
+    <label style="display:flex;gap:10px;align-items:center;justify-content:space-between">Tally times out while posting <span class="toggle"><input type="checkbox" id="dTimeout"><span></span></span></label>
+    <span class="muted" style="font-size:13px">These let you see how the safety checks behave.</span>
+  </div>
+  <button class="fab" id="demoFab">Demo controls</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const inr=n=>"₹"+Number(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const neg=n=>"−"+inr(Math.abs(n));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("on"),2600)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---------- theme ---------- */
+function setTheme(t){document.documentElement.setAttribute("data-theme",t);store.set("nd-theme",t)}
+function toggleTheme(){const cur=document.documentElement.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");setTheme(cur==="dark"?"light":"dark")}
+if(store.get("nd-theme"))setTheme(store.get("nd-theme"));
+$("#themeBtn").onclick=toggleTheme;$("#themeBtn2").onclick=toggleTheme;
+
+/* ---------- demo data (all made up) ---------- */
+const TYPES={sales:"Sales invoices",purchase:"Purchase bills",credit:"Credit notes",debit:"Debit notes",receipt:"Receipts",payment:"Payments"};
+const SAMPLE=[
+ {no:"INV-2201",date:"2026-09-07",party:"SHARMA TELECOM",tally:"SHARMA TELECOM",how:"GSTIN match",pos:"Chandigarh",status:"ready",
+  items:[["ACME AIRBUDS ACE BLACK","ACME AIRBUDS ACE BLACK",2,1288.14,2576.28],["Pb331","Pb331",1,1000,1000]],taxable:3576.28,tax:[["CGST OUTPUT",321.86],["UTGST OUTPUT",321.86]],round:0,total:4220},
+ {no:"INV-2202",date:"2026-09-07",party:"KAUR MOBILE SHOP",tally:"KAUR MOBILE SHOP",how:"Exact name",pos:"Punjab",status:"ready",
+  items:[["Acme_Rocker Summit Classic Black","ACME ROCKER SUMMIT BLACK",10,1694.92,16949.2]],taxable:16949.2,tax:[["IGST OUTPUT",3050.86]],round:-0.06,total:20000,note:"Item matched to \"ACME ROCKER SUMMIT BLACK\". The colour word \"Classic\" was ignored because stock is not tracked by colour."},
+ {no:"INV-2203",date:"2026-09-08",party:"Rana Enterprise",tally:"Rana Enterprises",how:"Best single name match",pos:"Punjab",status:"ready",
+  items:[["POWERBANK 20000 MAH WITH CABLE","POWERBANK 20000 MAH WITH CABLE",5,1271.19,6355.95]],taxable:6355.95,tax:[["IGST OUTPUT",1144.07]],round:-0.02,total:7500,note:"Party \"Rana Enterprise\" matched to ledger \"Rana Enterprises\". Same GSTIN."},
+ {no:"INV-2204",date:"2026-09-08",party:"ANKUR SRIVASTAV",tally:"",how:"",pos:"Chandigarh",status:"held",kind:"party",
+  items:[["ACME AIRBUDS ACE BLACK","ACME AIRBUDS ACE BLACK",3,1694.92,5084.76]],taxable:5084.76,tax:[["CGST OUTPUT",457.62],["UTGST OUTPUT",457.62]],round:0,total:6000,
+  q:"Tally has no ledger for ANKUR SRIVASTAV, and the file has no GSTIN or address for this customer. Create a new customer ledger, or is this an existing party under another name?"},
+ {no:"INV-2205",date:"2026-09-08",party:"BRIGHT & CLEAR ADVERTISING PVT LTD",tally:"BRIGHT & CLEAR ADVERTISING PVT LTD",how:"GSTIN match",pos:"Haryana",status:"held",kind:"item",
+  items:[["Coin 3-in-1 Charger","",4,847.46,3389.84]],taxable:3389.84,tax:[["IGST OUTPUT",610.16]],round:0,total:4000,
+  q:"No stock item matches \"Coin 3-in-1 Charger\". Map it to the closest existing item, or create it as a new item?",suggest:"COIN CHARGER 2 IN 1"},
+ {no:"INV-2206",date:"2026-09-06",party:"KAUR MOBILE SHOP",tally:"KAUR MOBILE SHOP",how:"Exact name",pos:"Punjab",status:"dup",
+  items:[["ACME ROCKER SUMMIT BLACK","ACME ROCKER SUMMIT BLACK",10,1694.92,16949.2]],taxable:16949.2,tax:[["IGST OUTPUT",3050.86]],round:-0.06,total:20000,reason:"Sales INV-2206 is already in Tally on 06 Sep 2026. Skipped."},
+ {no:"INV-2207",date:"2026-09-09",party:"SHARMA TELECOM",tally:"SHARMA TELECOM",how:"GSTIN match",pos:"Chandigarh",status:"error",
+  items:[["ACME ROCKER SUMMIT BLACK","ACME ROCKER SUMMIT BLACK",5,1600,8000]],taxable:8000,tax:[["CGST OUTPUT",720],["UTGST OUTPUT",720]],round:0,total:8000,
+  reason:"Items 8,000.00 plus tax 1,440.00 do not match the invoice total 8,000.00. The taxable value equals the total, so the amount column may already include tax. Check the column and upload again."},
+ {no:"INV-2208",date:"2026-09-09",party:"ONLINE MARKETPLACE SALE",tally:"ONLINE MARKETPLACE SALE",how:"Exact name",pos:"Karnataka",status:"ready",
+  items:[["ACME AIRBUDS ACE BLACK","ACME AIRBUDS ACE BLACK",21,767.51,16117.71],["POWERBANK 20000 MAH WITH CABLE","POWERBANK 20000 MAH WITH CABLE",11,1234.99,13584.89]],taxable:29702.6,tax:[["IGST OUTPUT",5346.47]],round:-0.0,total:35049.07,note:"Channel sale on the consolidated marketplace ledger."},
+ {no:"INV-2209",date:"2026-09-10",party:"RANA ENTERPRISES",tally:"Rana Enterprises",how:"GSTIN match",pos:"Haryana",status:"ready",
+  items:[["ACME ROCKER SUMMIT BLACK","ACME ROCKER SUMMIT BLACK",6,1666.67,10000.02]],taxable:10000.02,tax:[["IGST OUTPUT",1800.00]],round:-0.02,total:11800,note:"Bill to is Punjab but ship to is Haryana. Place of supply is the ship to state, so IGST applies."}
+];
+const HISTORY=[
+ {when:"05 Sep 2026, 11:20",what:"August sales, 42 invoices",ok:40,held:2,dup:0,total:812340.5},
+ {when:"02 Sep 2026, 17:05",what:"Vendor payments, 11 rows",ok:11,held:0,dup:0,total:3300000},
+ {when:"29 Aug 2026, 10:42",what:"Purchase bills, 18 bills",ok:17,held:1,dup:0,total:1284100},
+ {when:"26 Aug 2026, 16:30",what:"Credit notes, 4 notes",ok:4,held:0,dup:0,total:36400}
+];
+
+/* ---------- state ---------- */
+const S={user:null,route:"dashboard",type:"sales",step:1,plan:null,filter:"all",open:null,fileName:"",posted:{},postState:"idle",demo:false,offline:false,timeout:false,connOk:true,setup:{helper:true,tally:true,server:true,firewall:true},
+  settings:{gstin:"04AAAAA0000A1Z5",state:"Chandigarh",godown:"Main Location",freeze:"2026-04-01",readonly:false}};
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+/* ---------- auth ---------- */
+let authMode="up";
+function openAuth(m){authMode=m==="in"?"in":"up";$("#authTitle").textContent=authMode==="in"?"Welcome back":"Create your account";$("#authSub").textContent=authMode==="in"?"Sign in to your workspace.":"Free to try. No card needed.";$("#authSwitch").textContent=authMode==="in"?"I need an account":"I already have an account";$("#auth").showModal()}
+$$("[data-auth]").forEach(b=>b.onclick=()=>{const m=b.dataset.auth;if(m==="demo")enter("demo@neuraldesk.in");else openAuth(m)});
+$("#authSwitch").onclick=()=>openAuth(authMode==="in"?"up":"in");
+$("#useDemo").onclick=()=>{$("#auth").close();enter("demo@neuraldesk.in")};
+$("#authForm").onsubmit=e=>{e.preventDefault();const em=$("#em").value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){toast("Please enter a valid email");$("#auth").showModal();return}$("#auth").close();enter(em)};
+function enter(email){S.user=email;store.set("nd-user",email);$("#landing").style.display="none";$("#demoNote").style.display="none";$("#app").classList.add("on");$("#demoCtl").hidden=false;go(location.hash.replace("#/app/","")||"dashboard");window.scrollTo(0,0)}
+$("#signOut").onclick=()=>{store.set("nd-user","");S.user=null;S.plan=null;S.step=1;$("#app").classList.remove("on");$("#landing").style.display="";$("#demoNote").style.display="";$("#demoCtl").hidden=true;history.replaceState(null,"","#top")};
+
+/* ---------- routing ---------- */
+const TITLES={dashboard:"Dashboard",import:"Upload and import",queue:"Held items",history:"History",connection:"Connection",settings:"Settings",billing:"Plan and billing"};
+function go(r){if(!TITLES[r])r="dashboard";S.route=r;history.replaceState(null,"","#/app/"+r);$("#title").textContent=TITLES[r];$$(".nv").forEach(b=>b.classList.toggle("on",b.dataset.go===r));$("#side").classList.remove("open");render();window.scrollTo(0,0)}
+$$(".nv").forEach(b=>b.onclick=()=>go(b.dataset.go));
+$("#hamb").onclick=()=>$("#side").classList.toggle("open");
+function render(){({dashboard:vDash,import:vImport,queue:vQueue,history:vHistory,connection:vConn,settings:vSettings,billing:vBilling})[S.route]();updateBadge();updateConn()}
+function updateBadge(){const n=S.plan?S.plan.filter(r=>r.status==="held").length:0;$("#heldBadge").textContent=n;$("#heldBadge").style.display=n?"":"none"}
+function updateConn(){const c=$("#conn");const ok=!S.offline;c.className="pill "+(ok?"ok":"bad");c.innerHTML='<i class="dot"></i>'+(ok?"Tally connected":"Tally not reachable")}
+
+/* ---------- dashboard ---------- */
+function vDash(){
+  const held=S.plan?S.plan.filter(r=>r.status==="held").length:0;
+  $("#page").innerHTML=`
+  <div class="kpis">
+    <div class="card kpi"><div class="v num">412</div><div class="l">Entries posted this month</div></div>
+    <div class="card kpi"><div class="v num">${held||3}</div><div class="l">Waiting for your decision</div></div>
+    <div class="card kpi"><div class="v num">17</div><div class="l">Duplicates stopped</div></div>
+    <div class="card kpi"><div class="v num">21 h</div><div class="l">Typing time saved</div></div>
+  </div>
+  <div class="two">
+    <div class="card panel"><h2>Start a new import</h2>
+      <div class="drop" id="dz"><div class="big">📄</div><b>Drop an Excel, CSV or PDF here</b><p class="muted" style="margin:6px 0 14px">or choose a file. For this preview, any file loads the sample batch.</p><button class="btn primary" id="pick">Choose file</button> <button class="btn" id="useSample">Use sample sheet</button></div>
+    </div>
+    <div class="card panel"><h2>Connection</h2>
+      <div class="list"><div class="it"><span class="pill ${S.offline?"bad":"ok"}"><i class="dot"></i>${S.offline?"Offline":"Connected"}</span><div class="grow"><b>Demo Traders Pvt Ltd</b><div class="muted" style="font-size:14px">via Windows helper on OFFICE-PC</div></div></div>
+      <div class="it"><div class="grow muted" style="font-size:14px">Write mode: ${S.settings.readonly?"Read only":"Preview, then confirm"}<br>Freeze date: ${S.settings.freeze}</div><button class="btn sm" data-go2="connection">Details</button></div></div>
+    </div>
+  </div>
+  <div class="card panel" style="margin-top:16px"><h2>Recent batches</h2><div class="list">${HISTORY.map(h=>`<div class="it"><div class="grow"><b>${esc(h.what)}</b><div class="muted" style="font-size:14px">${h.when}</div></div><span class="pill ok">${h.ok} posted</span>${h.held?`<span class="pill warn">${h.held} held</span>`:""}<span class="num muted">${inr(h.total)}</span></div>`).join("")}</div></div>`;
+  wireDrop();$$("[data-go2]").forEach(b=>b.onclick=()=>go(b.dataset.go2));
+}
+function wireDrop(){const dz=$("#dz");if(!dz)return;
+  const pick=document.createElement("input");pick.type="file";pick.accept=".xlsx,.xls,.csv,.pdf,image/*";pick.hidden=true;document.body.appendChild(pick);
+  const load=n=>{S.fileName=n||"August_sales.xlsx";startPlan()};
+  $("#pick").onclick=()=>pick.click();pick.onchange=()=>{if(pick.files[0])load(pick.files[0].name);pick.remove()};
+  $("#useSample").onclick=()=>load("August_sales.xlsx");
+  ["dragenter","dragover"].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.add("over")}));
+  ["dragleave","drop"].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.remove("over")}));
+  dz.addEventListener("drop",x=>{const f=x.dataTransfer.files[0];load(f?f.name:"")});
+}
+function startPlan(){S.step=2;S.plan=null;S.posted={};S.postState="idle";go("import")}
+
+/* ---------- import flow ---------- */
+function stepper(){const n=["Upload","Sorting","Review","Post"];return `<div class="stepper">${n.map((t,i)=>`<div class="s ${S.step===i+1?"on":""} ${S.step>i+1?"done":""}"><i>${S.step>i+1?"✓":i+1}</i>${t}</div>${i<3?'<span class="sep"></span>':""}`).join("")}</div>`}
+function vImport(){
+  if(S.step===1)return vUpload();if(S.step===2)return vSorting();if(S.step===3)return vReview();return vPost();
+}
+function vUpload(){
+  $("#page").innerHTML=stepper()+`<div class="card panel">
+    <h2>What are you uploading?</h2>
+    <div class="seg" id="typeSeg">${Object.entries(TYPES).map(([k,v])=>`<button data-t="${k}" class="${S.type===k?"on":""}">${v}</button>`).join("")}</div>
+    <div class="drop" id="dz" style="margin-top:18px"><div class="big">⬆️</div><b>Drop your file here</b>
+    <p class="muted" style="margin:6px 0 14px">Excel, CSV, PDF or photos. One row per item, same invoice number groups into one invoice.</p>
+    <button class="btn primary" id="pick">Choose file</button> <button class="btn" id="useSample">Use sample sheet</button>
+    <p class="muted" style="font-size:13px;margin:14px 0 0">Preview only: any file loads the same made up sample batch.</p></div>
+    <p class="muted" style="margin:14px 0 0">Need a template? <a href="#" id="tpl">Download the Excel template</a>.</p></div>`;
+  $$("#typeSeg button").forEach(b=>b.onclick=()=>{S.type=b.dataset.t;vUpload()});wireDrop();
+  $("#tpl").onclick=e=>{e.preventDefault();toast("In the full product this downloads the "+TYPES[S.type].toLowerCase()+" template")};
+}
+async function vSorting(){
+  const stages=["Reading "+(S.fileName||"file"),"Grouping rows into invoices","Matching parties by GSTIN and name","Matching stock items","Working out GST by ship to state","Checking totals to the paisa","Checking for duplicates in Tally"];
+  $("#page").innerHTML=stepper()+`<div class="card panel"><h2 style="text-align:center;margin-bottom:6px">Sorting your documents</h2><p class="muted" style="text-align:center;margin:0 0 20px">Nothing is written to Tally during this step.</p><div class="sortlist" id="sl">${stages.map(s=>`<div class="r"><span class="todo"></span><span>${esc(s)}</span></div>`).join("")}</div></div>`;
+  const rows=$$("#sl .r");
+  for(let i=0;i<rows.length;i++){
+    rows[i].firstChild.className="spin";await sleep(S.route!=="import"?0:420);
+    if(S.route!=="import"||S.step!==2)return;
+    rows[i].firstChild.className="tick";rows[i].firstChild.textContent="✓";
+  }
+  if(S.offline){S.step=1;toast("Tally is not reachable, so duplicates could not be checked. Fix the connection first.");go("connection");return}
+  S.plan=clone(SAMPLE);S.filter="all";S.open=null;S.step=3;await sleep(250);if(S.route==="import")render();
+}
+const ST={ready:["ok","Ready"],held:["warn","Held"],dup:["dup","Duplicate"],error:["bad","Error"]};
+function counts(){const c={ready:0,held:0,dup:0,error:0};S.plan.forEach(r=>c[r.status]++);return c}
+function readyTotal(){return S.plan.filter(r=>r.status==="ready").reduce((a,r)=>a+r.total,0)}
+function vReview(){
+  updateBadge();
+  const c=counts(),rows=S.plan.filter(r=>S.filter==="all"||r.status===S.filter);
+  $("#page").innerHTML=stepper()+`
+  <div class="summary">
+    <span class="pill ok">${c.ready} ready · ${inr(readyTotal())}</span><span class="pill warn">${c.held} held</span><span class="pill dup">${c.dup} duplicate</span><span class="pill bad">${c.error} error</span>
+    <span class="muted" style="margin-left:auto;font-size:14px">${esc(S.fileName||"August_sales.xlsx")} · ${TYPES[S.type]}</span>
+  </div>
+  <div class="card panel" style="margin-bottom:14px;padding:14px 18px"><span class="pill ok">Series complete</span> <span class="muted">INV-2201 to INV-2209, no missing numbers.</span> <span class="muted">Dates read day first.</span></div>
+  <div class="summary">${["all","ready","held","dup","error"].map(f=>`<button class="chip ${S.filter===f?"on":""}" data-f="${f}">${f==="all"?"All "+S.plan.length:ST[f][1]+" "+c[f]}</button>`).join("")}</div>
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>No.</th><th>Date</th><th>Party (file)</th><th class="hide-s">Tally ledger</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>
+  ${rows.map(r=>`<tr class="rw" data-no="${r.no}"><td><b>${r.no}</b></td><td class="num">${fmtDate(r.date)}</td><td>${esc(r.party)}</td><td class="hide-s">${r.tally?esc(r.tally):'<span class="muted">not found</span>'}</td><td class="r num">${inr(r.total)}</td><td><span class="pill ${ST[r.status][0]}"><i class="dot"></i>${ST[r.status][1]}</span></td></tr>${S.open===r.no?detail(r):""}`).join("")}
+  </tbody></table></div>
+  <div style="display:flex;gap:10px;justify-content:space-between;margin-top:18px;flex-wrap:wrap;align-items:center">
+    <button class="btn" id="back">← Start over</button>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:14px">${c.held?c.held+" held item"+(c.held>1?"s":"")+" will wait. ":""}Only ready entries are posted.</span>
+    <button class="btn primary" id="postBtn" ${c.ready&&!S.settings.readonly?"":"disabled"}>Post ${c.ready} ready entr${c.ready===1?"y":"ies"}</button></div>
+  </div>
+  ${S.settings.readonly?'<p class="muted" style="text-align:right;margin:8px 0 0">Read only mode is on in Settings, so nothing can be posted.</p>':""}`;
+  $$(".chip").forEach(b=>b.onclick=()=>{S.filter=b.dataset.f;vReview()});
+  $$("tr.rw").forEach(t=>t.onclick=()=>{S.open=S.open===t.dataset.no?null:t.dataset.no;vReview()});
+  $("#back").onclick=()=>{S.step=1;S.plan=null;render()};
+  $("#postBtn").onclick=askPost;wireDetail();
+}
+const fmtDate=d=>new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+function detail(r){
+  const lines=r.items.map(i=>`<tr><td>${esc(i[0])}${i[1]&&i[1]!==i[0]?`<div class="muted" style="font-size:12px">matched to ${esc(i[1])}</div>`:""}${!i[1]?'<div style="font-size:12px;color:var(--warn)">no matching item in Tally</div>':""}</td><td class="r num">${i[2]}</td><td class="r num">${i[3].toFixed(2)}</td><td class="r num">${i[4].toFixed(2)}</td></tr>`).join("");
+  const tax=r.tax.map(t=>`<tr><td>${t[0]}</td><td class="r num">${t[1].toFixed(2)}</td></tr>`).join("");
+  let extra="";
+  if(r.status==="held")extra=askBlock(r);
+  if(r.reason)extra=`<div class="ask" style="background:var(--${r.status==="error"?"bad":"dup"}-soft)">${esc(r.reason)}</div>`;
+  return `<tr class="detail"><td colspan="6"><div class="cols">
+    <div><b>Lines</b><table class="mini"><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Amount</th></tr></thead><tbody>${lines}</tbody></table></div>
+    <div><b>GST and total</b><table class="mini"><tbody><tr><td>Taxable value</td><td class="r num">${r.taxable.toFixed(2)}</td></tr>${tax}${r.round?`<tr><td>ROUND OFF</td><td class="r num">${r.round.toFixed(2)}</td></tr>`:""}<tr><td><b>Total after tax</b></td><td class="r num"><b>${r.total.toFixed(2)}</b></td></tr></tbody></table>
+    <p class="muted" style="font-size:13px;margin:8px 0 0">Place of supply: ${esc(r.pos)} · ${r.tax.length===1?"IGST":"CGST with "+(S.settings.state==="Chandigarh"?"UTGST":"SGST")}${r.how?" · party matched by: "+esc(r.how):""}</p></div>
+  </div>${r.note?`<p class="muted" style="margin:12px 0 0;font-size:14px">ℹ️ ${esc(r.note)}</p>`:""}${extra}</td></tr>`;
+}
+function askBlock(r){
+  if(r.kind==="party")return `<div class="ask"><b>Decision needed</b><p style="margin:6px 0 0">${esc(r.q)}</p>
+    <div class="opts"><button class="btn sm primary" data-act="newledger" data-no="${r.no}">Create new ledger</button><button class="btn sm" data-act="existing" data-no="${r.no}">It is an existing party</button><button class="btn sm ghost" data-act="skip" data-no="${r.no}">Skip this one</button></div>
+    <div id="nl-${r.no}" hidden><p class="muted" style="font-size:14px;margin:12px 0 0">New ledgers are created complete, never as a bare name.</p>
+      <div class="form2"><label class="f">Registration<select id="nlreg"><option>Unregistered</option><option>Regular (has GSTIN)</option></select></label><label class="f">State<input type="text" id="nlst" value="Chandigarh"></label><label class="f">Address<input type="text" id="nlad" placeholder="Shop, street, city"></label><label class="f">Pincode<input type="text" id="nlpin" placeholder="6 digits" inputmode="numeric" maxlength="6"></label></div>
+      <div class="opts"><button class="btn sm primary" data-act="createok" data-no="${r.no}">Approve and create ledger</button></div></div></div>`;
+  return `<div class="ask"><b>Decision needed</b><p style="margin:6px 0 0">${esc(r.q)}</p>
+    <div class="opts"><button class="btn sm primary" data-act="mapitem" data-no="${r.no}">Map to ${esc(r.suggest)}</button><button class="btn sm" data-act="newitem" data-no="${r.no}">Create as new item</button><button class="btn sm ghost" data-act="skip" data-no="${r.no}">Skip this one</button></div></div>`;
+}
+function wireDetail(){$$("[data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();act(b.dataset.act,b.dataset.no)});$$(".detail").forEach(d=>d.onclick=e=>e.stopPropagation())}
+function act(a,no){
+  const r=S.plan.find(x=>x.no===no);
+  if(a==="newledger"){const f=$("#nl-"+no);f.hidden=!f.hidden;return}
+  if(a==="createok"){const ad=$("#nlad").value.trim(),pin=$("#nlpin").value.trim();if(!ad||!/^\d{6}$/.test(pin)){toast("Address and a 6 digit pincode are needed. Ledgers are created complete.");return}
+    r.status="ready";r.tally=r.party;r.how="New ledger, approved by you";r.note="Ledger created: "+$("#nlreg").value+", "+$("#nlst").value+", "+ad+", "+pin+". Entry is now ready.";delete r.q;toast("Ledger approved. Entry is ready.");vReview();return}
+  if(a==="existing"){toast("In the full product you pick the existing ledger from a list");return}
+  if(a==="mapitem"){r.items[0][1]=r.suggest;r.status="ready";r.tally=r.tally||r.party;r.note="You mapped \""+r.items[0][0]+"\" to \""+r.suggest+"\". Saved, so next time it matches automatically.";toast("Mapped and remembered");vReview();return}
+  if(a==="newitem"){r.items[0][1]=r.items[0][0].toUpperCase();r.status="ready";r.note="You approved creating a new stock item \""+r.items[0][1]+"\". The full product asks for group, unit and HSN first.";toast("Item approved");vReview();return}
+  if(a==="skip"){r.status="dup";r.reason="Skipped by you. It stays out of this batch.";toast("Skipped");vReview();return}
+}
+function askPost(){
+  const c=counts();$("#cfTitle").textContent="Post "+c.ready+" entries to Tally?";
+  $("#cfBody").innerHTML=`<p style="margin:0">You are about to post <b>${c.ready}</b> ${TYPES[S.type].toLowerCase()} totalling <b>${inr(readyTotal())}</b> into <b>${esc($("#company").value)}</b>.</p><p style="margin:10px 0 0">Each one is checked against the party balance afterwards. If anything fails, posting stops.</p>`;
+  $("#cfCheck").checked=false;$("#cfYes").disabled=true;$("#confirmDlg").showModal();
+}
+$("#cfCheck").onchange=e=>$("#cfYes").disabled=!e.target.checked;
+$("#cfNo").onclick=()=>$("#confirmDlg").close();
+$("#cfYes").onclick=()=>{$("#confirmDlg").close();S.step=4;S.posted={};S.postState="running";render();runPost()};
+
+async function runPost(){
+  const list=S.plan.filter(r=>r.status==="ready");let done=0;
+  for(const r of list){
+    if(S.route!=="import"||S.step!==4)return;
+    S.posted[r.no]={s:"run"};paintPost();await sleep(650);
+    if(S.offline){S.posted[r.no]={s:"fail",m:"Tally did not answer. Nothing was posted for this entry."};S.postState="stopped";paintPost();return}
+    if(S.timeout&&done===2){S.posted[r.no]={s:"fail",m:"Tally timed out. The party balance has not moved, so this entry was NOT posted. Safe to try again once Tally responds."};S.postState="stopped";paintPost();return}
+    S.posted[r.no]={s:"ok",delta:-r.total};done++;paintPost();
+  }
+  S.postState="done";paintPost();
+}
+function vPost(){
+  $("#page").innerHTML=stepper()+`<div id="pp"></div>`;paintPost();
+}
+function paintPost(){
+  updateBadge();
+  const box=$("#pp");if(!box)return;const list=S.plan.filter(r=>r.status==="ready");const okN=list.filter(r=>S.posted[r.no]&&S.posted[r.no].s==="ok").length;
+  const pct=Math.round(okN/list.length*100);
+  const total=list.filter(r=>S.posted[r.no]&&S.posted[r.no].s==="ok").reduce((a,r)=>a+r.total,0);
+  box.innerHTML=`<div class="card panel" style="padding:0;overflow:hidden">
+    <div style="padding:20px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px"><h2 style="margin:0;font-size:18px">${S.postState==="done"?"All done":S.postState==="stopped"?"Stopped after a problem":"Posting to Tally"}</h2><span class="muted">${okN} of ${list.length} posted and verified</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>
+    ${list.map(r=>{const p=S.posted[r.no];let right='<span class="pill dup">Waiting</span>',mid=`<div>${esc(r.party)}<div class="muted" style="font-size:13px">${inr(r.total)}</div></div>`;
+      if(p&&p.s==="run")right='<span class="spin"></span>';
+      if(p&&p.s==="ok"){right='<span class="pill ok">Verified ✓</span>';mid=`<div>${esc(r.party)}<div class="muted" style="font-size:13px">Party balance moved by ${neg(r.total)}, expected ${neg(r.total)}. Match.</div></div>`}
+      if(p&&p.s==="fail"){right='<span class="pill bad">Not posted</span>';mid=`<div>${esc(r.party)}<div style="font-size:13px;color:var(--bad)">${esc(p.m)}</div></div>`}
+      return `<div class="postrow"><b>${r.no}</b>${mid}${right}</div>`}).join("")}
+    ${S.postState==="done"?`<div style="padding:20px;background:var(--ok-soft);color:var(--ok)"><b>${okN} entries posted, ${inr(total)} in total.</b> Every balance check matched. ${counts().held?counts().held+" held item(s) are waiting in Held items. ":""}${counts().dup?counts().dup+" skipped as duplicate or by you. ":""}</div>
+    <div style="padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="dl">Download report</button><button class="btn primary" id="again">Import another file</button></div>`:""}
+    ${S.postState==="stopped"?`<div style="padding:20px;background:var(--bad-soft);color:var(--bad)"><b>Posting stopped.</b> Nothing else is posted on top of a problem. Entries already verified stay posted. Check Tally, then continue from the review screen.</div><div style="padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="conn2">Check connection</button><button class="btn primary" id="retry">Back to review</button></div>`:""}
+  </div>`;
+  const dl=$("#dl");if(dl)dl.onclick=()=>toast("In the full product this downloads a CSV report");
+  const ag=$("#again");if(ag)ag.onclick=()=>{S.step=1;S.plan=null;render()};
+  const c2=$("#conn2");if(c2)c2.onclick=()=>go("connection");
+  const rt=$("#retry");if(rt)rt.onclick=()=>{S.plan.forEach(r=>{if(S.posted[r.no]&&S.posted[r.no].s==="ok"){r.status="dup";r.reason="Posted and verified a moment ago."}});S.posted={};S.step=3;render()};
+}
+
+/* ---------- held queue ---------- */
+function vQueue(){
+  const held=S.plan?S.plan.filter(r=>r.status==="held"):[];
+  $("#page").innerHTML=held.length?`<p class="muted" style="margin-top:0">Questions that need you. Answer here or from the review table.</p><div class="list card panel">${held.map(r=>`<div class="it" style="align-items:flex-start"><span class="pill warn">Held</span><div class="grow"><b>${r.no} · ${esc(r.party)} · ${inr(r.total)}</b><div class="muted" style="margin-top:4px">${esc(r.q)}</div></div><button class="btn sm primary" data-open="${r.no}">Decide</button></div>`).join("")}</div>`
+   :`<div class="card panel" style="text-align:center;padding:48px"><div style="font-size:38px">🎉</div><h2 style="margin-top:8px">Nothing is waiting for you</h2><p class="muted">Held items from your imports show up here with the exact question.</p><button class="btn primary" data-go2="import">Start an import</button></div>`;
+  $$("[data-open]").forEach(b=>b.onclick=()=>{S.open=b.dataset.open;S.step=3;go("import")});$$("[data-go2]").forEach(b=>b.onclick=()=>go(b.dataset.go2));
+}
+function vHistory(){
+  $("#page").innerHTML=`<div class="card panel"><div class="list">${HISTORY.map(h=>`<div class="it"><div class="grow"><b>${esc(h.what)}</b><div class="muted" style="font-size:14px">${h.when}</div></div><span class="pill ok">${h.ok} posted</span>${h.held?`<span class="pill warn">${h.held} held</span>`:""}<span class="num muted">${inr(h.total)}</span><button class="btn sm" data-r>Report</button></div>`).join("")}</div></div>`;
+  $$("[data-r]").forEach(b=>b.onclick=()=>toast("In the full product this opens the audit report"));
+}
+
+/* ---------- connection ---------- */
+function vConn(){
+  const T=[["helper","Install the Windows helper","One small program next to Tally. It talks to Tally on your PC and to this site over an encrypted outbound connection."],["tally","Open TallyPrime and your company","Silver or Gold. Close other companies you do not want to post into."],["server","Set Tally to Server mode","F1 Help, Settings, Connectivity, Client/Server. Acts as Server or Both, port 9000."],["firewall","Allow it through the firewall","Only needed when Tally is on another PC. tally.exe on Domain, Private and Public."]];
+  $("#page").innerHTML=`<div class="card panel" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:16px"><span class="pill ${S.offline?"bad":"ok"}" style="font-size:15px"><i class="dot"></i>${S.offline?"Tally not reachable":"Connected"}</span><div class="grow"><b>${S.offline?"We could not reach Tally":"Demo Traders Pvt Ltd is open"}</b><div class="muted">${S.offline?"Work through the checklist below, then run the check again.":"Helper version 0.1.0 on OFFICE-PC · TallyPrime Gold · port 9000"}</div></div><button class="btn primary" id="check">Run connection check</button></div>
+  <div class="two"><div class="steplist">${T.map((t,i)=>`<div class="t ${S.setup[t[0]]&&!S.offline?"ok":""}"><i>${S.setup[t[0]]&&!S.offline?"✓":i+1}</i><div><b>${t[1]}</b><div class="muted" style="font-size:14px">${t[2]}</div></div><button class="btn sm" data-dl="${t[0]}">${t[0]==="helper"?"Download":"Done"}</button></div>`).join("")}</div>
+  <div class="help"><b>Stuck? Send a screenshot.</b><span class="muted" style="font-size:14px">Take a picture of the Tally screen or the message you see and drop it here. We compare it with what was posted, find the single difference, and fix the setting. Then you see one test entry before the rest.</span>
+    <div class="drop" id="shotdrop" style="padding:20px"><button class="btn sm" id="shotbtn">Choose screenshot</button><div id="shotprev"></div></div></div></div>`;
+  $("#check").onclick=async()=>{const b=$("#check");b.disabled=true;b.textContent="Checking...";await sleep(900);b.disabled=false;b.textContent="Run connection check";toast(S.offline?"Tally did not answer. Is a dialog box open in Tally? Press Esc to the Gateway of Tally.":"Connected. Company found and write mode is ready.")};
+  $$("[data-dl]").forEach(b=>b.onclick=()=>toast(b.dataset.dl==="helper"?"In the full product this downloads the installer":"Marked as done"));
+  const inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.hidden=true;document.body.appendChild(inp);
+  $("#shotbtn").onclick=()=>inp.click();
+  inp.onchange=()=>{const f=inp.files[0];if(!f)return;const u=URL.createObjectURL(f);$("#shotprev").innerHTML=`<p class="muted" style="font-size:13px">Preview only, not uploaded anywhere.</p><img class="shot" alt="Your screenshot" src="${u}">`;inp.remove()};
+}
+
+/* ---------- settings ---------- */
+function vSettings(){
+  const s=S.settings;
+  $("#page").innerHTML=`<div class="two"><div class="card panel"><h2>Company</h2>
+   <div class="form2" style="margin-top:0"><label class="f">Company GSTIN<input type="text" id="sg" value="${esc(s.gstin)}"></label><label class="f">Company state <span class="h">decides IGST or CGST with SGST</span><input type="text" id="ss" value="${esc(s.state)}"></label>
+   <label class="f">Default godown<input type="text" id="sd" value="${esc(s.godown)}"></label><label class="f">Freeze date <span class="h">nothing before this is touched</span><input type="date" id="sf" value="${esc(s.freeze)}"></label></div>
+   <div style="display:flex;gap:14px;align-items:center;margin-top:18px"><span class="toggle"><input type="checkbox" id="sro" ${s.readonly?"checked":""}><span></span></span><div><b>Read only mode</b><div class="muted" style="font-size:14px">Nothing can be written to Tally. A good way to start.</div></div></div>
+   <div style="margin-top:20px"><button class="btn primary" id="save">Save settings</button></div></div>
+   <div class="card panel"><h2>Ledger names found in your Tally</h2><table class="mini"><tbody>
+   ${[["CGST on sales","CGST OUTPUT"],["SGST or UTGST on sales","UTGST OUTPUT"],["IGST on sales","IGST OUTPUT"],["CGST on purchases","CGST INPUT"],["IGST on purchases","IGST INPUT"],["Round off","ROUND OFF"],["Sales, same state","SALES LOCAL@ {rate}%"],["Sales, other state","SALES IGST@{rate}%"]].map(r=>`<tr><td>${r[0]}</td><td class="r"><b>${r[1]}</b></td></tr>`).join("")}</tbody></table>
+   <p class="muted" style="font-size:14px;margin:12px 0 0">Every company names these differently, so we read yours and ask you to confirm once.</p></div></div>`;
+  $("#save").onclick=()=>{Object.assign(S.settings,{gstin:$("#sg").value,state:$("#ss").value,godown:$("#sd").value,freeze:$("#sf").value,readonly:$("#sro").checked});toast("Settings saved")};
+}
+
+/* ---------- billing ---------- */
+function vBilling(){
+  $("#page").innerHTML=`<div class="two"><div class="card panel"><h2>Your plan</h2><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px"><b style="font-size:22px">Yearly</b><span class="pill ok">Active</span></div><p class="muted" style="margin:6px 0 16px">₹7,999 a year · renews 14 Sep 2027 · 1 company</p>
+   <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>Entries used this year</span><b class="num">2,184 of 6,000</b></div><div class="meter"><i style="width:36%"></i></div>
+   <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap"><button class="btn" data-t="Invoices open in your email">Download invoices</button><button class="btn" data-t="Payment details would open here">Update payment method</button></div></div>
+   <div class="card panel"><h2>Change plan</h2><div class="list">
+   ${[["Monthly","₹999 /month"],["Yearly","₹7,999 /year"],["Lifetime","₹24,999 once"],["For accountants","10 or more companies"]].map(p=>`<div class="it"><b class="grow">${p[0]}</b><span class="muted">${p[1]}</span><button class="btn sm" data-t="Plan change would start here">Choose</button></div>`).join("")}</div>
+   <p class="muted" style="font-size:13px;margin:12px 0 0">Preview only. No payment is taken. Payments in the real product are in rupees with a GST invoice.</p></div></div>
+   <div class="card panel" style="margin-top:16px"><h2>Using Busy instead of Tally?</h2><p class="muted" style="margin:0 0 12px">Busy support is planned. It needs sample import files from real Busy users to get exactly right.</p><button class="btn" data-t="You are on the Busy waitlist">Join the Busy waitlist</button></div>`;
+  $$("[data-t]").forEach(b=>b.onclick=()=>toast(b.dataset.t));
+}
+
+/* ---------- demo controls ---------- */
+$("#demoFab").onclick=e=>{e.stopPropagation();$("#demoCtl").classList.toggle("open")};
+document.addEventListener("click",e=>{if(!e.target.closest("#demoCtl"))$("#demoCtl").classList.remove("open")});
+$("#dOffline").onchange=e=>{S.offline=e.target.checked;updateConn();if(S.route==="dashboard"||S.route==="connection")render();toast(S.offline?"Tally is now offline":"Tally is back")};
+$("#dTimeout").onchange=e=>{S.timeout=e.target.checked;toast(S.timeout?"The third entry will time out while posting":"Timeouts off")};
+
+/* ---------- boot ---------- */
+if(store.get("nd-user")){enter(store.get("nd-user"))}
+else if(location.hash.startsWith("#/app")){enter("demo@neuraldesk.in")}
+})();
+</script>
+</body>
+</html>
