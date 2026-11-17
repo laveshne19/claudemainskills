@@ -48,26 +48,38 @@ class Match:
     candidates: list = field(default_factory=list)   # [(name, score)]
 
 
-def _score(a: str, b: str) -> float:
+def _score(a: str, b: str) -> tuple[float, str]:
+    """Return (score, kind). kind: exact | substring | tokens | fuzzy."""
     if not a or not b:
-        return 0.0
+        return 0.0, ""
     if a == b:
-        return 1.0
+        return 1.0, "exact"
     if a in b or b in a:
         short, long_ = sorted((a, b), key=len)
         # a substring only counts when it covers a meaningful share of the longer name
-        return 0.80 + 0.19 * (len(short) / len(long_)) if len(short) >= 4 else 0.0
+        return ((0.80 + 0.19 * (len(short) / len(long_))), "substring") if len(short) >= 4 else (0.0, "")
     ta, tb = set(a.split()), set(b.split())
     if ta and tb:
         j = len(ta & tb) / len(ta | tb)
         if j >= 0.5:
-            return 0.55 + 0.4 * j
-    return difflib.SequenceMatcher(None, a, b).ratio() * 0.85
+            return 0.55 + 0.4 * j, "tokens"
+    return difflib.SequenceMatcher(None, a, b).ratio() * 0.85, "fuzzy"
+
+
+def _numbers(s: str) -> set:
+    """Tokens that carry a digit: model numbers, capacities, pack sizes. They must agree."""
+    return {t for t in s.split() if any(c.isdigit() for c in t)}
 
 
 def best(query: str, names: list[str], *, ignore_colours=False, mapping: dict | None = None,
-         floor: float = 0.62, gap: float = 0.08) -> Match:
-    """Pick the single best name or say it is ambiguous. Never guess between different things."""
+         floor: float = 0.62, gap: float = 0.08, strict: bool = True) -> Match:
+    """Pick the single best name or say it is ambiguous. Never guess between different things.
+
+    strict=True (the default) refuses to auto-accept:
+      * a match that rests on spelling similarity alone ("ANAND ENTERPRISES" is not "NALANDA ENTERPRISES")
+      * a match where the model numbers, capacities or pack sizes differ ("3 IN 1" is not "2 IN 1")
+    Those come back as 'ambiguous' with the candidate so a person decides.
+    """
     if not query or not query.strip():
         return Match("none")
     if mapping:
@@ -76,16 +88,28 @@ def best(query: str, names: list[str], *, ignore_colours=False, mapping: dict | 
                 return Match("auto", v, 1.0, "saved mapping", [(v, 1.0)])
     prep = strip_colours if ignore_colours else norm
     q = prep(query)
-    scored = sorted(((n, _score(q, prep(n))) for n in names), key=lambda x: -x[1])
-    scored = [s for s in scored if s[1] >= floor][:6]
+    scored = []
+    for n in names:
+        sc, kind = _score(q, prep(n))
+        if sc >= floor:
+            scored.append((n, sc, kind))
+    scored.sort(key=lambda x: -x[1])
+    scored = scored[:6]
+    cands = [(n, s) for n, s, _ in scored]
     if not scored:
         return Match("none")
     top = scored[0]
-    if top[1] >= 0.995:
-        return Match("auto", top[0], top[1], "exact", scored)
+    if top[2] == "exact":
+        return Match("auto", top[0], top[1], "exact", cands)
+    if strict:
+        if top[2] == "fuzzy" and top[1] < 0.90:
+            return Match("ambiguous", None, top[1], "only similar spelling, please confirm", cands)
+        qn, tn = _numbers(q), _numbers(prep(top[0]))
+        if (qn or tn) and qn != tn:
+            return Match("ambiguous", None, top[1], "numbers differ (model, size or pack), please confirm", cands)
     if len(scored) == 1 or top[1] - scored[1][1] >= gap:
-        return Match("auto", top[0], top[1], "best single hit", scored)
-    return Match("ambiguous", None, top[1], "several close candidates", scored)
+        return Match("auto", top[0], top[1], "best single hit", cands)
+    return Match("ambiguous", None, top[1], "several close candidates", cands)
 
 
 def by_gstin(gstin: str, ledgers: list[dict]) -> str | None:

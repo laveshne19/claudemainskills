@@ -37,6 +37,13 @@ own Windows PC, so everything happens on their machine and nothing is sent to a 
 10. **Never test in live books.** If a test is needed, use `tally-connect demo` or a copy of the company.
 11. **Do not run two Claude windows against the same Tally.** It drops connections. If another run is going, wait.
 
+12. **Do not state that a setting exists unless you have checked it.** If you are not sure a Tally or Zoho option exists,
+    say so and ask for a screenshot of the screen. A confident wrong answer costs more than "I am not sure".
+13. **One payment lives in one ledger.** Use the ledger the party already has vouchers in. A similar amount posted for another
+    party in the last week is held for the user to confirm.
+14. **A fuzzy name is not a match.** Similar spelling alone, or differing model numbers, capacities and pack sizes, is put to
+    the user. Matching is by GSTIN first, then address, then clearly the same words.
+
 ## Talking to the user
 
 Keep it short and plain. Say what you found, what you did, what is held and why. When something needs a decision, ask

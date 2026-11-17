@@ -19,7 +19,7 @@ def _print_plan(p: pipeline.Plan):
     if s["series_gaps"]:
         print("  series gaps:", ", ".join(s["series_gaps"]))
     for r in p.table():
-        flag = {"READY": "[ok]  ", "HELD": "[held]", "DUPLICATE": "[dup] ", "ERROR": "[err] "}[r["status"]]
+        flag = {"READY": "[ok]  ", "HELD": "[held]", "DUPLICATE": "[dup] ", "SKIPPED": "[skip]", "ERROR": "[err] "}[r["status"]]
         tot = f"{r['total']:>12,.2f}" if r["total"] is not None else " " * 12
         print(f"  {flag} {r['type']:<11} {r['number']:<14} {r['date']}  {r['party'][:30]:<30} {tot}")
         for q in r["questions"] or r["reasons"]:

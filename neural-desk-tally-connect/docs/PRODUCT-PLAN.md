@@ -59,6 +59,13 @@ write a privacy policy and terms before charging. Do not store Tally credentials
 Test pricing with the first ten customers before fixing it. Lifetime needs a clear limit written in the terms, otherwise
 support cost grows forever.
 
+## Proven in daily use but not yet in the connector
+
+- Outstanding and ageing sheets by salesperson (bill date based, FIFO, ties to Tally ledger totals, A4 print).
+- Daily salesperson emails and WhatsApp follow-ups.
+- Bank statement reconciliation between Zoho and Tally.
+These are natural paid add-ons once the posting core is proven on real books.
+
 ## Busy
 
 Busy does not expose the same HTTP/XML gateway Tally does. The practical route is to generate the Excel or XML import files

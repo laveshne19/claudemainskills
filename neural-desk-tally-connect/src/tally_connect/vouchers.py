@@ -163,10 +163,12 @@ def invoice_xml(inv: Invoice, cfg: dict) -> str:
         "<LEDGERENTRIES.LIST>"                          # party first, like real vouchers
         f"<LEDGERNAME>{esc(inv.party_ledger)}</LEDGERNAME><ISDEEMEDPOSITIVE>{_deemed(party_amt)}</ISDEEMEDPOSITIVE>"
         f"<ISPARTYLEDGER>Yes</ISPARTYLEDGER><AMOUNT>{_amt(party_amt)}</AMOUNT>"
-        # Always carry a bill allocation with the real invoice number. Without it Tally files the
-        # voucher as "On Account" dated the day it was posted and its own ageing breaks.
-        f"<BILLALLOCATIONS.LIST><NAME>{esc(ref_name)}</NAME><BILLTYPE>{ref_type}</BILLTYPE>"
-        f"<AMOUNT>{_amt(party_amt)}</AMOUNT></BILLALLOCATIONS.LIST></LEDGERENTRIES.LIST>"
+        # Carry a bill allocation with the real invoice number. Without it some installations file the
+        # voucher as "On Account" dated the day it was posted and Tally's own ageing breaks.
+        # Switch off with send_bill_allocations=false if a company behaves differently (confirm on the first test).
+        + ((f"<BILLALLOCATIONS.LIST><NAME>{esc(ref_name)}</NAME><BILLTYPE>{ref_type}</BILLTYPE>"
+            f"<AMOUNT>{_amt(party_amt)}</AMOUNT></BILLALLOCATIONS.LIST>") if cfg.get("send_bill_allocations", True) else "")
+        + "</LEDGERENTRIES.LIST>"
     ]
     for ledger, a in inv.tax:
         amt = s * a

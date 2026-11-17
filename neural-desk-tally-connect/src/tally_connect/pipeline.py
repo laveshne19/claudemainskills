@@ -16,7 +16,7 @@ from .engine import Tally
 @dataclass
 class Row:
     doc: I.Doc
-    status: str = "READY"                     # READY | HELD | DUPLICATE | ERROR
+    status: str = "READY"                     # READY | HELD | DUPLICATE | SKIPPED | ERROR
     reasons: list = field(default_factory=list)
     questions: list = field(default_factory=list)
     invoice: V.Invoice | None = None
@@ -31,8 +31,18 @@ def _held(row: Row, reason: str, question: str):
     row.questions.append(question)
 
 
+def _on_skip_list(cfg: dict, number: str) -> bool:
+    n = str(number).strip()
+    return n in [str(x) for x in cfg.get("skip_numbers", [])] or any(
+        n.upper().startswith(str(p).upper()) for p in cfg.get("skip_number_prefixes", []) if p)
+
+
 def build(t: Tally, d: I.Doc) -> Row:
     row = Row(d, notes=list(d.warnings))
+    if _on_skip_list(t.cfg, d.number):
+        row.status = "SKIPPED"
+        row.reasons.append("On your skip list, so it is not entered.")
+        return row
     if d.voucher_type not in V.INVOICE_TYPES:
         row.status = "ERROR"
         row.reasons.append(f"Voucher type {d.voucher_type!r} is not an item invoice type")
@@ -132,7 +142,7 @@ class Plan:
     notes: list
 
     def summary(self) -> dict:
-        c = {"READY": 0, "HELD": 0, "DUPLICATE": 0, "ERROR": 0}
+        c = {"READY": 0, "HELD": 0, "DUPLICATE": 0, "SKIPPED": 0, "ERROR": 0}
         for r in self.rows:
             c[r.status] += 1
         ready_total = round(sum((r.invoice.total if r.invoice else r.pay.amount) for r in self.rows if r.status == "READY"), 2)
@@ -201,16 +211,37 @@ def build_payment(t: Tally, d: I.PayDoc, default_bank: str = "") -> Row:
         if t.state.was_posted_key(key):
             row.status = "DUPLICATE"
             row.reasons.append("already posted by Tally Connect (same date, party and amount)")
+        else:
+            alias = t.state.similar_payment(d.voucher_type, party, d.amount, d.date)
+            if alias:
+                _held(row, f"A {d.voucher_type} of {d.amount:,.2f} was already posted for {alias['party']} on {alias['date']}",
+                      f"A {d.voucher_type.lower()} of {d.amount:,.2f} went to {alias['party']} on {alias['date']}. Is this "
+                      f"the same payment for {party}? One payment must never sit in two ledgers.")
     return row
+
+
+def _flag_large(t: Tally, rows: list):
+    """A fat finger guard: one document far bigger than the rest of the batch gets held for a human look."""
+    import statistics
+    amts = [(r.invoice.total if r.invoice else (r.pay.amount if r.pay else 0)) for r in rows]
+    amts = [a for a in amts if a > 0]
+    if len(amts) < 4:
+        return
+    med, k = statistics.median(amts), t.cfg.get("large_amount_factor", 10)
+    for r, a in zip(rows, [(r.invoice.total if r.invoice else (r.pay.amount if r.pay else 0)) for r in rows]):
+        if r.status == "READY" and med > 0 and a > k * med and a >= 50000:
+            _held(r, f"Amount {a:,.2f} is more than {k} times the typical document in this file ({med:,.2f})",
+                  f"{r.doc.voucher_type} {r.doc.number} is for {a:,.2f}, far above the rest of the file. Is the amount right?")
 
 
 def make_plan(t: Tally, path: str, default_type="Sales", sheet=None, default_bank: str = "") -> Plan:
     if default_type in ("Receipt", "Payment"):
         docs, notes = I.parse_payments(path, default_type, sheet)
         rows = [build_payment(t, d, default_bank) for d in docs]
-        return Plan(uuid.uuid4().hex[:8], rows, notes)
-    docs, notes = I.parse(path, default_type, sheet)
-    rows = [build(t, d) for d in docs]
+    else:
+        docs, notes = I.parse(path, default_type, sheet)
+        rows = [build(t, d) for d in docs]
+    _flag_large(t, rows)
     return Plan(uuid.uuid4().hex[:8], rows, notes)
 
 

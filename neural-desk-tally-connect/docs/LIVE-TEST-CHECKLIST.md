@@ -32,6 +32,11 @@ match letter for letter, a missing godown, or a dialog box open in Tally.
 
 ## Known unknowns from this build
 
+- **Bill reference.** The connector sends a bill allocation carrying the invoice number so Tally files the invoice as a proper
+  bill. The scripts it was modelled on did not send one, and the owner saw "On Account" dated the posting day with another
+  connector. If the first test shows anything odd in the bill, outstanding or ageing, set `send_bill_allocations` to false in
+  the settings and test again. Tell us which way your Tally behaves.
+
 - The exact XML field names used to read party GSTIN and state from ledgers (`PartyGSTIN`, `LedStateName`) were taken from
   working scripts but should be confirmed on first run. If `find_ledger` by GSTIN never hits, send a screenshot of a ledger
   screen and the output of `tally-connect doctor`.

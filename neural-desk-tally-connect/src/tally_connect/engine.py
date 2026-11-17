@@ -135,6 +135,7 @@ class Tally:
 
     ALLOWED_SETTINGS = {"company", "company_gstin", "company_state", "company_gst_type", "default_godown", "default_batch",
                         "class_name", "freeze_before", "read_only", "allow_ledger_creation", "ignore_trailing_colours",
+                        "send_bill_allocations", "skip_number_prefixes", "skip_numbers", "large_amount_factor",
                         "ledgers", "utgst_states"}
 
     def update_settings(self, changes: dict) -> dict:
@@ -327,5 +328,8 @@ class Tally:
     @staticmethod
     def _key(p):
         s = p["summary"]
-        return {"voucher_type": s.get("voucher_type", ""), "number": s.get("number", ""),
-                "party": s.get("party", ""), "total": s.get("total"), "key": s.get("key", "")}
+        amt = s.get("total")
+        if amt is None and s.get("entries"):
+            amt = abs(next((a for l, a in s["entries"] if l == s.get("party")), s["entries"][0][1]))
+        return {"voucher_type": s.get("voucher_type", ""), "number": s.get("number", ""), "date": s.get("date", ""),
+                "party": s.get("party", ""), "total": amt, "key": s.get("key", "")}

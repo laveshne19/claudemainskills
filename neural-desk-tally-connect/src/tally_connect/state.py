@@ -56,3 +56,21 @@ class State:
 
     def was_posted_key(self, key: str) -> bool:
         return any(e.get("key") == key and e.get("ok") for e in self.data["posted"])
+
+    def similar_payment(self, vtype: str, party: str, amount: float, iso_day: str, days: int = 7) -> dict | None:
+        """Same type and amount within a week under a DIFFERENT party: the same payment on an alias ledger."""
+        from datetime import date
+        try:
+            d0 = date.fromisoformat(iso_day)
+        except ValueError:
+            return None
+        for e in self.data["posted"]:
+            if not e.get("ok") or e.get("voucher_type") != vtype or e.get("party") == party or not e.get("date"):
+                continue
+            try:
+                gap = abs((date.fromisoformat(e["date"]) - d0).days)
+            except ValueError:
+                continue
+            if gap <= days and abs(float(e.get("total") or 0) - amount) < 0.011:
+                return e
+        return None

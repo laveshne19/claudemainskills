@@ -42,6 +42,22 @@ class Matching(unittest.TestCase):
         self.assertEqual(matching.best("Kaur Mob", self.P, mapping={"Kaur Mob": "KAUR MOBILE SHOP"}).name, "KAUR MOBILE SHOP")
 
 
+class Guards(unittest.TestCase):
+    P = ["NALANDA ENTERPRISES", "Rana Enterprises"]
+    def test_similar_spelling_is_not_a_match(self):
+        m = matching.best("ANAND ENTERPRISES", self.P); self.assertEqual(m.status, "ambiguous")
+    def test_pack_size_must_agree(self):
+        m = matching.best("Coin 3-in-1 Charger", ["COIN CHARGER 2 IN 1"], ignore_colours=True); self.assertEqual(m.status, "ambiguous")
+    def test_capacity_must_agree(self):
+        m = matching.best("POWERBANK 10000 MAH", ["POWERBANK 20000 MAH"], ignore_colours=True); self.assertEqual(m.status, "ambiguous")
+    def test_model_number_in_longer_name_still_matches(self):
+        self.assertEqual(matching.best("PB331 MagnaCharge Ash Black", ["Pb331"], ignore_colours=True).name, "Pb331")
+    def test_bill_allocation_can_be_turned_off(self):
+        i = V.Invoice("Sales", "2026-09-07", "1", "X", [V.Item("I", 1, 100.0, 100.0, ledger="S")], [("IGST OUTPUT", 18.0)], 118.0)
+        self.assertIn("BILLALLOCATIONS", V.invoice_xml(i, config.DEFAULTS))
+        self.assertNotIn("BILLALLOCATIONS", V.invoice_xml(i, {**config.DEFAULTS, "send_bill_allocations": False}))
+
+
 class Vouchers(unittest.TestCase):
     cfg = config.DEFAULTS
     def inv(self, vt="Sales"):
@@ -237,6 +253,33 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(p.rows[0].status, "READY"); self.assertTrue(pipeline.post_plan(self.t, p)[0]["ok"])
         self.assertEqual(pipeline.make_plan(self.t, sheet([["2026-09-14", "KAUR MOBILE SHOP", 4611, "HDFC BANK", "UTR1", "", "note"]],
                          ["Date", "Party Name", "Amount", "Bank", "Reference", "Against Invoice", "Narration"]), "Receipt").rows[0].status, "DUPLICATE")
+
+    def test_skip_list(self):
+        self.t.cfg["skip_number_prefixes"] = ["DC-"]; self.t.cfg["skip_numbers"] = ["S77"]
+        rows = [["DC-1", "2026-09-07", "SHARMA TELECOM", "", "Chandigarh", "Pb331", 1, 100, 100, 18, 118],
+                ["S77", "2026-09-07", "SHARMA TELECOM", "", "Chandigarh", "Pb331", 1, 100, 100, 18, 118],
+                ["S78", "2026-09-07", "SHARMA TELECOM", "", "Chandigarh", "Pb331", 1, 100, 100, 18, 118]]
+        st = {r["number"]: r["status"] for r in pipeline.make_plan(self.t, sheet(rows)).table()}
+        self.assertEqual(st, {"DC-1": "SKIPPED", "S77": "SKIPPED", "S78": "READY"})
+
+    def test_same_payment_under_another_ledger_is_held(self):
+        cols = ["Date", "Party Name", "Amount", "Bank"]
+        p1 = pipeline.make_plan(self.t, sheet([["2026-09-14", "KAUR MOBILE SHOP", 5000, "HDFC BANK"]], cols), "Receipt")
+        pipeline.post_plan(self.t, p1)
+        p2 = pipeline.make_plan(self.t, sheet([["2026-09-15", "SHARMA TELECOM", 5000, "HDFC BANK"]], cols), "Receipt")
+        self.assertEqual(p2.rows[0].status, "HELD"); self.assertIn("two ledgers", p2.rows[0].questions[0])
+
+    def test_two_real_payments_same_party_same_day_are_not_blocked(self):
+        cols = ["Date", "Party Name", "Amount", "Bank"]
+        p = pipeline.make_plan(self.t, sheet([["2026-09-14", "KAUR MOBILE SHOP", 11000, "HDFC BANK"],
+                                              ["2026-09-14", "KAUR MOBILE SHOP", 2205, "HDFC BANK"]], cols), "Receipt")
+        self.assertEqual([r.status for r in p.rows], ["READY", "READY"])
+
+    def test_fat_finger_amount_is_held(self):
+        base = [[f"F{i}", "2026-09-07", "SHARMA TELECOM", "", "Chandigarh", "Pb331", 1, 1000, 1000, 180, 1180] for i in range(1, 6)]
+        base.append(["F6", "2026-09-07", "SHARMA TELECOM", "", "Chandigarh", "Pb331", 1, 1000000, 1000000, 180000, 1180000])
+        st = {r["number"]: r["status"] for r in pipeline.make_plan(self.t, sheet(base)).table()}
+        self.assertEqual(st["F6"], "HELD"); self.assertEqual(st["F1"], "READY")
 
     def test_payment_without_bank_is_held(self):
         p = pipeline.make_plan(self.t, sheet([["2026-09-14", "KAUR MOBILE SHOP", 100]], ["Date", "Party Name", "Amount"]), "Receipt")

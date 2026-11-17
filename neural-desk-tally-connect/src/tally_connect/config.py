@@ -37,6 +37,10 @@ DEFAULTS: dict = {
         "Chandigarh", "Ladakh", "Lakshadweep",
         "Andaman and Nicobar Islands", "Dadra and Nagar Haveli and Daman and Diu",
     ],
+    "send_bill_allocations": True,   # tie each invoice to a bill with its own number (turn off if your Tally objects)
+    "skip_number_prefixes": [],      # e.g. ["DC-", "DCCASH"]: never entered, shown as SKIPPED
+    "skip_numbers": [],              # exact numbers to leave out, e.g. drafts or placeholders
+    "large_amount_factor": 10,       # flag a document this many times bigger than the batch median
     "timeout": 30,
     "retries": 4,
 }
