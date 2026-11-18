@@ -10,12 +10,26 @@ It runs on your own PC, next to your own Tally. Your books never leave your mach
 
 | Piece | What it is |
 |---|---|
-| `src/tally_connect` | The connector. A Python package, an MCP server for Claude, and a command line tool. |
+| `src/tally_connect` | The connector. A Python package, the desktop app (`tally-connect app`), an MCP server for Claude, and a command line tool. |
+| `desktop/` | Windows launchers and the read-me-first for the desktop test build. `scripts/build_release.py` makes the zip. |
 | `plugin/` | The Claude plugin: skills that teach Claude the routine and the safety rules, plus slash commands. |
 | `installer/install.ps1` | One script that installs everything on Windows and links it to Claude Desktop and Claude Code. |
 | `templates/` | Excel templates for each document type. |
 | `website/index.html` | A clickable sample of the web portal, for reviewing the interface. |
 | `docs/` | Install guide, user guide, Tally setup, how it works, product plan, live test checklist. |
+
+## Desktop app
+
+Run it on the PC that has Tally. It opens in your browser, on your own machine only.
+
+```
+tally-connect app            # real Tally
+tally-connect app --demo     # simulated Tally, nothing to install in Tally
+```
+
+Tabs: Import (upload, review, answer held questions, post), Setup (connection, company, ledger names, safety settings), History,
+Help (copies a diagnostics report to send to Claude together with a screenshot). Excel and CSV are read here. PDFs and photos are
+read by Claude with the plugin.
 
 ## Ten second tour (no Tally needed)
 
@@ -43,7 +57,8 @@ be frozen, and a read only mode is available for the first day.
 ## Status, honestly
 
 - Built from a protocol that was worked out against a real TallyPrime installation over several months of daily use.
-- 55 automated tests pass, plus an MCP end to end test on both major MCP SDK versions, against a simulated Tally.
+- 73 automated tests, an MCP end to end test on both major MCP SDK versions, and a 29 step browser test of the desktop app all
+  pass, against a simulated Tally. The same browser test passes against the installed release zip in a clean environment.
 - **Not yet run against a live TallyPrime from this build.** Do the checklist in `docs/LIVE-TEST-CHECKLIST.md` on the first
   day. Expect to adjust ledger names and the godown for each company. That is what the setup step is for.
 - Windows installer written and reviewed, not yet run on Windows.
@@ -54,4 +69,6 @@ be frozen, and a read only mode is available for the first day.
 ```
 python -m unittest discover -s tests
 python tests/mcp_smoke.py
+NODE_PATH=$(npm root -g) node tests/e2e_ui.js /tmp        # needs node and playwright
+python scripts/build_release.py                             # builds dist/TallyConnect-Desktop-<version>.zip
 ```

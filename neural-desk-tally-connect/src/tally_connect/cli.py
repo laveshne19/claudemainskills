@@ -92,6 +92,11 @@ def cmd_demo(a):
     return 0
 
 
+def cmd_app(a):
+    from .webapp import serve
+    return serve(port=a.port, demo=a.demo, open_browser=not a.no_browser)
+
+
 def cmd_serve(a):
     from .server import main as serve
     serve()
@@ -121,6 +126,11 @@ def main(argv=None):
     mk.add_argument("--port", type=int, default=9000)
     mk.set_defaults(fn=cmd_mock)
     sp.add_parser("demo", help="run a full self contained demo").set_defaults(fn=cmd_demo)
+    ap2 = sp.add_parser("app", help="open the desktop app in your browser (run this on the PC that has Tally)")
+    ap2.add_argument("--demo", action="store_true", help="use a built in simulated Tally, no Tally needed")
+    ap2.add_argument("--port", type=int, default=8765)
+    ap2.add_argument("--no-browser", action="store_true")
+    ap2.set_defaults(fn=cmd_app)
     sp.add_parser("serve", help="start the MCP server for Claude").set_defaults(fn=cmd_serve)
     a = ap.parse_args(argv)
     return a.fn(a)

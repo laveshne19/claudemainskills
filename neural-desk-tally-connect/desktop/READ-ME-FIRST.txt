@@ -1,0 +1,27 @@
+TALLY CONNECT, DESKTOP TEST BUILD  (version 0.2.0)
+By Neural Desk
+
+What this is
+  A small program that runs on the Windows PC that has TallyPrime. You open it in your browser, upload an Excel or CSV of
+  invoices, bills, credit notes, debit notes, receipts or payments, review what it found, and post. Every entry is checked against
+  the party balance in Tally afterwards.
+
+Try it first, with no Tally at all
+  1. Double click  INSTALL.bat  (once).
+  2. Double click  Start Demo (no Tally needed).bat
+  3. In the browser page that opens, press "Use the demo sample" and walk through it. A simulated Tally is used.
+
+Then test with your real Tally
+  1. Open TallyPrime and your company. F1 (Help), Settings, Connectivity, Client/Server: set "TallyPrime acts as" to Server or Both, port 9000.
+  2. Double click  Start Tally Connect.bat
+  3. On the Setup tab: Test connection, fill in the company GSTIN and state, press "Scan my Tally", check the ledger names, Save.
+  4. Switch ON "Read only mode" for the first run. Read a real file on the Import tab and check the review table against what you know.
+  5. Switch Read only OFF. Post ONE invoice. Open it in Tally and look at it carefully.
+  6. Follow LIVE-TEST-CHECKLIST.md in the docs folder.
+
+If anything looks different from your own entries
+  Take a screenshot (Windows key + Shift + S). On the Help tab press "Copy diagnostics". Send both to Claude with a line on what you expected.
+
+Important
+  This build was tested against a simulated Tally, not yet against your real one. Test on a COPY of your company first if you can.
+  PDFs and photos are read by Claude with the Tally Connect plugin (folder: plugin). This screen handles Excel and CSV.

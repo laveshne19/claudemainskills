@@ -3,7 +3,14 @@
 You need a Windows PC that runs TallyPrime (Silver or Gold), and Claude (Desktop or Claude Code) on the same PC.
 Python 3.10 or newer is installed for you if it is missing.
 
-## The easy way
+## Desktop app (recommended for the first test)
+
+1. Unzip `TallyConnect-Desktop-0.2.0.zip` anywhere on the PC that has Tally.
+2. Double click `INSTALL.bat` once.
+3. Double click `Start Demo (no Tally needed).bat` to try it, then `Start Tally Connect.bat` for your real Tally.
+`READ-ME-FIRST.txt` in the zip has the same steps in short.
+
+## The easy way (Claude connection)
 
 1. Download or clone this folder.
 2. Open PowerShell in the folder and run:

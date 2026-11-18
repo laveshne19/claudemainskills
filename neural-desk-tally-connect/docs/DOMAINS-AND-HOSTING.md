@@ -8,14 +8,10 @@
 - Every other domain you own (the `.io`, and any others) forwards to the main one.
 - Customers only ever see and remember one address. New tools are added to the portal, never to a new site.
 
-## Which domain is the main one
+## The main domain
 
-Pick the `.ai` domain that best matches the brand. Please confirm the exact spelling of the names you bought, because a spoken
-name and the registered name can differ. Until then the site uses a placeholder (`primaryDomain` at the top of the script in
-`website/index.html`).
-
-Check: the portal brand shown on the site is currently "Neural Desk". If the main domain is a different word, the brand text and the
-logo letter are one search and replace away.
+**neuraldesk.ai** is the portal. It matches the brand shown on the site ("Neural Desk"). It is set once in `PORTAL.primaryDomain`
+at the top of the script in `website/index.html`. Forwarding of the other domains comes later, using the steps below.
 
 ## Forward the other domains (GoDaddy)
 

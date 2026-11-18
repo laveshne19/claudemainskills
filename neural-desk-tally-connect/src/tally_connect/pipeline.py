@@ -23,12 +23,14 @@ class Row:
     notes: list = field(default_factory=list)
     accounting: V.Accounting | None = None
     pay: object = None
+    kinds: list = field(default_factory=list)   # why it is held: party, item, bank, large, alias, ...
 
 
-def _held(row: Row, reason: str, question: str):
+def _held(row: Row, reason: str, question: str, kind: str = ""):
     row.status = "HELD" if row.status != "ERROR" else row.status
     row.reasons.append(reason)
     row.questions.append(question)
+    row.kinds.append(kind)
 
 
 def _on_skip_list(cfg: dict, number: str) -> bool:
@@ -59,10 +61,10 @@ def build(t: Tally, d: I.Doc) -> Row:
     party_row = next((l for l in t.ledgers() if l["name"] == pm["name"]), None) if pm["name"] else None
     if pm["status"] == "none":
         _held(row, f"Party '{d.party}' has no ledger in Tally",
-              f"Tally has no ledger for {d.party}. Create it as a new ledger, or is it an existing party under another name?")
+              f"Tally has no ledger for {d.party}. Create it as a new ledger, or is it an existing party under another name?", "party")
     elif pm["status"] == "ambiguous":
         _held(row, f"Party '{d.party}' matches several ledgers",
-              f"Which ledger is {d.party}? " + " / ".join(n for n, _ in pm["candidates"]))
+              f"Which ledger is {d.party}? " + " / ".join(n for n, _ in pm["candidates"]), "party")
     else:
         if pm["how"] not in ("exact", "GSTIN match", "saved mapping"):
             row.notes.append(f"Party '{d.party}' matched to '{pm['name']}' ({pm['how']})")
@@ -71,9 +73,9 @@ def build(t: Tally, d: I.Doc) -> Row:
     pos = d.ship_state or d.state or I.state_from_gstin(d.gstin) or (party_row or {}).get("state", "")
     party_state = d.state or I.state_from_gstin(d.gstin) or (party_row or {}).get("state", "") or pos
     if not pos:
-        _held(row, "Place of supply unknown", f"What is the ship-to state for {d.number}? It decides IGST or CGST/SGST.")
+        _held(row, "Place of supply unknown", f"What is the ship-to state for {d.number}? It decides IGST or CGST/SGST.", "state")
     if not cfg.get("company_state"):
-        _held(row, "Company state is not set", "Set company_state in the settings first.")
+        _held(row, "Company state is not set", "Set the company state in Setup first.", "setup")
 
     # items
     items, taxable_sum = [], 0.0
@@ -81,11 +83,11 @@ def build(t: Tally, d: I.Doc) -> Row:
         im = t.find_item(ln.item)
         if im["status"] == "none":
             _held(row, f"Item '{ln.item}' not found",
-                  f"No stock item matches '{ln.item}'. Map it to the closest item, or create it as a new item?")
+                  f"No stock item matches '{ln.item}'. Map it to the closest item, or create it as a new item?", "item")
             continue
         if im["status"] == "ambiguous":
             _held(row, f"Item '{ln.item}' is ambiguous",
-                  f"Which stock item is '{ln.item}'? " + " / ".join(n for n, _ in im["candidates"]))
+                  f"Which stock item is '{ln.item}'? " + " / ".join(n for n, _ in im["candidates"]), "item")
             continue
         if im["how"] not in ("exact", "saved mapping"):
             row.notes.append(f"Item '{ln.item}' matched to '{im['name']}'")
@@ -95,7 +97,7 @@ def build(t: Tally, d: I.Doc) -> Row:
         led = ln.ledger or (T.item_ledger(d.voucher_type, cfg["company_state"], pos, rate, cfg) if pos else "")
         if led and led not in ledger_names:
             _held(row, f"Ledger '{led}' not in Tally",
-                  f"Which sales/purchase ledger should line '{ln.item}' use? '{led}' does not exist in Tally.")
+                  f"Which sales/purchase ledger should line '{ln.item}' use? '{led}' does not exist in Tally.", "ledger")
         items.append(V.Item(im["name"], ln.qty, round(ln.rate, 2), round(ln.taxable, 2), ln.unit, led, rate, ln.hsn))
         taxable_sum += ln.taxable
 
@@ -105,7 +107,7 @@ def build(t: Tally, d: I.Doc) -> Row:
     tax_led = T.tax_ledgers(d.voucher_type, cfg["company_state"], pos, cfg) if (pos and cfg.get("company_state")) else []
     for tl in tax_led:
         if tl not in ledger_names:
-            _held(row, f"Tax ledger '{tl}' not in Tally", f"The tax ledger '{tl}' is missing. Which ledger should GST go to?")
+            _held(row, f"Tax ledger '{tl}' not in Tally", f"The tax ledger '{tl}' is missing. Which ledger should GST go to?", "ledger")
     tax_pairs = T.split(tax_total, tax_led) if (tax_led and tax_total) else []
     round_off = round(total - taxable - tax_total, 2)
     if abs(round_off) > 1.0:
@@ -116,7 +118,7 @@ def build(t: Tally, d: I.Doc) -> Row:
                                "Check whether it is tax inclusive before posting.")
         return row
     if round_off and cfg["ledgers"]["round_off"] not in ledger_names:
-        _held(row, "Round off ledger missing", "Which ledger takes the paise difference?")
+        _held(row, "Round off ledger missing", "Which ledger takes the paise difference?", "ledger")
 
     party_name = pm["name"] or d.party
     gst = V.Gst(d.gstin or (party_row or {}).get("gstin", ""), party_state, pos,
@@ -193,15 +195,15 @@ def build_payment(t: Tally, d: I.PayDoc, default_bank: str = "") -> Row:
         return row
     pm = t.find_ledger(d.party)
     if pm["status"] == "none":
-        _held(row, f"Party '{d.party}' has no ledger in Tally", f"No ledger for {d.party}. Which ledger is this payment for?")
+        _held(row, f"Party '{d.party}' has no ledger in Tally", f"No ledger for {d.party}. Which ledger is this payment for?", "party")
     elif pm["status"] == "ambiguous":
         _held(row, f"Party '{d.party}' matches several ledgers",
-              f"Which ledger is {d.party}? " + " / ".join(n for n, _ in pm["candidates"]))
+              f"Which ledger is {d.party}? " + " / ".join(n for n, _ in pm["candidates"]), "party")
     bank = d.bank or default_bank
     names = {l["name"] for l in t.ledgers()}
     bm = t.find_ledger(bank) if bank else {"status": "none", "name": None}
     if bm["status"] != "auto":
-        _held(row, "Bank or cash ledger unclear", f"Which bank or cash ledger took this {d.voucher_type.lower()} of {d.amount:,.2f}?")
+        _held(row, "Bank or cash ledger unclear", f"Which bank or cash ledger took this {d.voucher_type.lower()} of {d.amount:,.2f}?", "bank")
     if row.status == "READY":
         party, bnk = pm["name"], bm["name"]
         entries = [(bnk, -d.amount), (party, d.amount)] if d.voucher_type == "Receipt" else [(party, -d.amount), (bnk, d.amount)]
@@ -216,7 +218,7 @@ def build_payment(t: Tally, d: I.PayDoc, default_bank: str = "") -> Row:
             if alias:
                 _held(row, f"A {d.voucher_type} of {d.amount:,.2f} was already posted for {alias['party']} on {alias['date']}",
                       f"A {d.voucher_type.lower()} of {d.amount:,.2f} went to {alias['party']} on {alias['date']}. Is this "
-                      f"the same payment for {party}? One payment must never sit in two ledgers.")
+                      f"the same payment for {party}? One payment must never sit in two ledgers.", "alias")
     return row
 
 
@@ -231,7 +233,7 @@ def _flag_large(t: Tally, rows: list):
     for r, a in zip(rows, [(r.invoice.total if r.invoice else (r.pay.amount if r.pay else 0)) for r in rows]):
         if r.status == "READY" and med > 0 and a > k * med and a >= 50000:
             _held(r, f"Amount {a:,.2f} is more than {k} times the typical document in this file ({med:,.2f})",
-                  f"{r.doc.voucher_type} {r.doc.number} is for {a:,.2f}, far above the rest of the file. Is the amount right?")
+                  f"{r.doc.voucher_type} {r.doc.number} is for {a:,.2f}, far above the rest of the file. Is the amount right?", "large")
 
 
 def make_plan(t: Tally, path: str, default_type="Sales", sheet=None, default_bank: str = "") -> Plan:
@@ -245,20 +247,30 @@ def make_plan(t: Tally, path: str, default_type="Sales", sheet=None, default_ban
     return Plan(uuid.uuid4().hex[:8], rows, notes)
 
 
+def post_row(t: Tally, r: Row) -> dict:
+    """Preview, confirm and verify one READY row. Never raises for a refused or failed entry."""
+    from .engine import RefusedWrite
+    from .gateway import GatewayError
+    try:
+        pv = t.preview_invoice(r.invoice) if r.invoice else t.preview_accounting(r.accounting)
+        if not pv["ok"]:
+            return {"number": r.doc.number, "ok": False, "duplicate": bool(pv.get("duplicate")), "problems": pv["problems"]}
+        cf = t.confirm(pv["preview_id"])
+    except (RefusedWrite, GatewayError) as e:
+        return {"number": r.doc.number, "ok": False, "problems": [str(e)]}
+    return {"number": r.doc.number, "ok": cf["ok"], "verified": cf.get("verified"),
+            "balance_delta": cf.get("balance_delta"), "note": cf.get("note", ""), "problems": cf.get("problems", [])}
+
+
 def post_plan(t: Tally, plan: Plan, only: list[str] | None = None) -> list[dict]:
     """Post READY rows one by one. Stops at the first row that fails or fails verification."""
     results = []
     for r in plan.rows:
         if r.status != "READY" or (only and r.doc.number not in only) or not (r.invoice or r.accounting):
             continue
-        pv = t.preview_invoice(r.invoice) if r.invoice else t.preview_accounting(r.accounting)
-        if not pv["ok"]:
-            results.append({"number": r.doc.number, "ok": False, "problems": pv["problems"]})
-            continue
-        cf = t.confirm(pv["preview_id"])
-        results.append({"number": r.doc.number, "ok": cf["ok"], "verified": cf.get("verified"),
-                        "balance_delta": cf.get("balance_delta"), "problems": cf.get("problems", [])})
-        if not cf["ok"]:
+        res = post_row(t, r)
+        results.append(res)
+        if not res["ok"] and not res.get("duplicate"):
             results.append({"stopped": "Stopped after the first failure so nothing else is posted on top of a problem."})
             break
     return results

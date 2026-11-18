@@ -357,7 +357,7 @@ dialog .in{padding:26px;display:grid;gap:14px}
 (function(){
 "use strict";
 /* ===== PORTAL CONFIG: add a future tool by adding one line here, nothing else needs to change ===== */
-const PORTAL={brand:"Neural Desk",primaryDomain:"your-main-domain.ai"};
+const PORTAL={brand:"Neural Desk",primaryDomain:"neuraldesk.ai"};
 const PRODUCTS=[
  {id:"tally",icon:"📒",name:"Tally Connect",status:"preview",line:"Upload Excel, CSV or PDF and post into TallyPrime. Every entry proven against the party balance.",route:"dashboard"},
  {id:"zoho",icon:"🔁",name:"Zoho to Tally sync",status:"planned",line:"Mirror Zoho Books invoices, bills and credit notes into Tally, and Tally payments back to Zoho."},
@@ -421,9 +421,9 @@ const clone=o=>JSON.parse(JSON.stringify(o));
 /* ---------- auth ---------- */
 let authMode="up";
 function openAuth(m){authMode=m==="in"?"in":"up";$("#authTitle").textContent=authMode==="in"?"Welcome back":"Create your account";$("#authSub").textContent=authMode==="in"?"Sign in to your workspace.":"Free to try. No card needed.";$("#authSwitch").textContent=authMode==="in"?"I need an account":"I already have an account";$("#auth").showModal()}
-$$("[data-auth]").forEach(b=>b.onclick=()=>{const m=b.dataset.auth;if(m==="demo")enter("demo@neuraldesk.in");else openAuth(m)});
+$$("[data-auth]").forEach(b=>b.onclick=()=>{const m=b.dataset.auth;if(m==="demo")enter("demo@neuraldesk.ai");else openAuth(m)});
 $("#authSwitch").onclick=()=>openAuth(authMode==="in"?"up":"in");
-$("#useDemo").onclick=()=>{$("#auth").close();enter("demo@neuraldesk.in")};
+$("#useDemo").onclick=()=>{$("#auth").close();enter("demo@neuraldesk.ai")};
 $("#authForm").onsubmit=e=>{e.preventDefault();const em=$("#em").value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){toast("Please enter a valid email");$("#auth").showModal();return}$("#auth").close();enter(em)};
 function enter(email){S.user=email;store.set("nd-user",email);$("#landing").style.display="none";$("#demoNote").style.display="none";$("#app").classList.add("on");$("#demoCtl").hidden=false;go(location.hash.replace("#/app/","")||"apps");window.scrollTo(0,0)}
 $("#signOut").onclick=()=>{store.set("nd-user","");S.user=null;S.plan=null;S.step=1;$("#app").classList.remove("on");$("#landing").style.display="";$("#demoNote").style.display="";$("#demoCtl").hidden=true;history.replaceState(null,"","#top")};
@@ -444,7 +444,7 @@ function productCard(p,inApp){
   return `<div class="card" style="padding:22px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:26px">${p.icon}</span><span class="pill ${st[0]}">${st[1]}</span></div><h3 style="font-size:18px">${esc(p.name)}</h3><p class="muted" style="margin:0;font-size:15px;flex:1">${esc(p.line)}</p><div>${act}</div></div>`;
 }
 function wireTools(root,inApp){
-  $$("[data-open-tool]",root).forEach(b=>b.onclick=()=>{const p=PRODUCTS.find(x=>x.id===b.dataset.openTool);if(inApp)go(p.route);else enter("demo@neuraldesk.in")});
+  $$("[data-open-tool]",root).forEach(b=>b.onclick=()=>{const p=PRODUCTS.find(x=>x.id===b.dataset.openTool);if(inApp)go(p.route);else enter("demo@neuraldesk.ai")});
   $$("[data-wait]",root).forEach(b=>b.onclick=()=>{b.textContent="You are on the list";b.disabled=true;toast("We will tell you when "+b.dataset.wait+" is ready")});
 }
 function vApps(){
@@ -682,7 +682,7 @@ $("#dTimeout").onchange=e=>{S.timeout=e.target.checked;toast(S.timeout?"The thir
 /* ---------- boot ---------- */
 (function(){const g=$("#landingProducts");if(g){g.innerHTML=PRODUCTS.map(p=>productCard(p,false)).join("");wireTools(g,false)}})();
 if(store.get("nd-user")){enter(store.get("nd-user"))}
-else if(location.hash.startsWith("#/app")){enter("demo@neuraldesk.in")}
+else if(location.hash.startsWith("#/app")){enter("demo@neuraldesk.ai")}
 })();
 </script>
 </body>

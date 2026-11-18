@@ -52,8 +52,11 @@ def seed() -> dict:
 
 
 class MockTally:
-    def __init__(self, port=0, lag=False):
+    def __init__(self, port=0, lag=False, demo_history=False):
         self.db = seed()
+        if demo_history:       # one invoice already in the books, so the demo shows duplicate handling
+            self.db["vouchers"].append({"date": "20260906", "type": "Sales", "number": "INV-2206",
+                                        "party": "KAUR MOBILE SHOP", "has_bill_alloc": True})
         self.lag = lag
         self.drop_next = 0
         self.drop_reply_next = 0       # process the request, then drop the reply (a "cosmetic" timeout)

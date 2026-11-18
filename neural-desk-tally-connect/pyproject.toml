@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tally-connect"
-version = "0.1.0"
+version = "0.2.0"
 description = "Neural Desk Tally Connect: post sales, purchase, credit note, debit note, receipt and payment entries into TallyPrime from Claude, with preview, confirm and balance verification."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,3 +17,6 @@ tally-connect-mcp = "tally_connect.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+tally_connect = ["ui/*.html"]
