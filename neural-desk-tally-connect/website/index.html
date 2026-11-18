@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neural Desk Tally Connect</title>
-<meta name="description" content="Upload Excel or PDF, review, and post into TallyPrime. Every entry proven against the party balance.">
+<title>Neural Desk</title>
+<meta name="description" content="One portal for AI accounting tools. Start with Tally Connect: upload Excel or PDF, review, and post into TallyPrime.">
 <style>
 :root{
   --bg:#f5f6fa;--surface:#fff;--surface2:#f0f2f8;--ink:#101828;--muted:#5d6b82;--line:#e3e7ef;
@@ -207,7 +207,7 @@ dialog .in{padding:26px;display:grid;gap:14px}
 <div id="landing">
 <header class="nav"><div class="wrap">
   <a class="brand" href="#top"><span class="logo">N</span>Neural Desk</a>
-  <nav class="links" aria-label="Sections"><a href="#how">How it works</a><a href="#features">Why it is safe</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+  <nav class="links" aria-label="Sections"><a href="#products">Tools</a><a href="#how">How it works</a><a href="#features">Why it is safe</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
   <span class="sp"></span>
   <button class="btn ghost sm" id="themeBtn" aria-label="Switch light or dark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
   <button class="btn sm" data-auth="in">Sign in</button>
@@ -242,6 +242,12 @@ dialog .in{padding:26px;display:grid;gap:14px}
   <div class="works"><span>Works with</span><span class="pill info">TallyPrime</span><span class="pill info">Zoho Books</span><span class="pill dup">Busy · coming soon</span><span class="pill dup">Excel · CSV · PDF · photos</span></div>
 </div></section>
 
+<section class="block" id="products"><div class="wrap">
+  <h2>One portal. Every tool.</h2>
+  <p class="sub">One account, one sign in, one place to come back to. New tools appear here as they launch.</p>
+  <div class="feat" id="landingProducts"></div>
+</div></section>
+
 <section class="block" id="how"><div class="wrap">
   <h2>Four steps, about two minutes a batch</h2>
   <p class="sub">The first time takes ten minutes to connect. After that it is the same routine every day.</p>
@@ -268,7 +274,7 @@ dialog .in{padding:26px;display:grid;gap:14px}
 
 <section class="block" id="pricing"><div class="wrap">
   <h2>Pricing you can explain to your accountant</h2>
-  <p class="sub">Start free with sample data. Sample prices shown for review. Final pricing is yet to be fixed.</p>
+  <p class="sub">One plan covers every tool on the portal as it launches. Sample prices shown for review. Final pricing is yet to be fixed.</p>
   <div class="price">
     <div class="card plan"><h3>Monthly</h3><div class="amt">₹999<small> /month</small></div><ul><li>1 Tally company</li><li>Up to 500 entries a month</li><li>Excel, CSV, PDF</li><li>Email support</li></ul><button class="btn" data-auth="up">Start monthly</button></div>
     <div class="card plan hot"><h3>Yearly</h3><div class="amt">₹7,999<small> /year</small></div><ul><li>1 Tally company</li><li>Up to 6,000 entries a year</li><li>Everything in Monthly</li><li>Priority fixes</li><li>Save about a third</li></ul><button class="btn primary" data-auth="up">Start yearly</button></div>
@@ -287,13 +293,15 @@ dialog .in{padding:26px;display:grid;gap:14px}
   <details class="faq"><summary>Who is responsible for the entries?</summary><p>You approve every entry, and your accountant stays responsible for your books. We make the typing fast and the checks strict.</p></details>
 </div></section>
 </main>
-<footer><div class="wrap">© Neural Desk. Tally and TallyPrime are trademarks of Tally Solutions. This site is not affiliated with or endorsed by them.</div></footer>
+<footer><div class="wrap">© Neural Desk. One portal for all our tools. Tally and TallyPrime are trademarks of Tally Solutions. This site is not affiliated with or endorsed by them.</div></footer>
 </div>
 
 <!-- =================== APP =================== -->
 <div id="app">
   <aside class="side" id="side">
-    <a class="brand" href="#/app/dashboard"><span class="logo">N</span>Neural Desk</a>
+    <a class="brand" href="#/app/apps"><span class="logo">N</span>Neural Desk</a>
+    <button class="nv" data-go="apps">🧩 All tools</button>
+    <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;padding:12px 12px 4px">Tally Connect</div>
     <button class="nv" data-go="dashboard">🏠 Dashboard</button>
     <button class="nv" data-go="import">⬆️ Upload and import</button>
     <button class="nv" data-go="queue">❓ Held items <span class="badge" id="heldBadge">0</span></button>
@@ -348,6 +356,17 @@ dialog .in{padding:26px;display:grid;gap:14px}
 <script>
 (function(){
 "use strict";
+/* ===== PORTAL CONFIG: add a future tool by adding one line here, nothing else needs to change ===== */
+const PORTAL={brand:"Neural Desk",primaryDomain:"your-main-domain.ai"};
+const PRODUCTS=[
+ {id:"tally",icon:"📒",name:"Tally Connect",status:"preview",line:"Upload Excel, CSV or PDF and post into TallyPrime. Every entry proven against the party balance.",route:"dashboard"},
+ {id:"zoho",icon:"🔁",name:"Zoho to Tally sync",status:"planned",line:"Mirror Zoho Books invoices, bills and credit notes into Tally, and Tally payments back to Zoho."},
+ {id:"busy",icon:"🧾",name:"Busy Connect",status:"planned",line:"The same upload and review flow for Busy users, through Busy's own import files."},
+ {id:"aging",icon:"📊",name:"Outstanding and ageing reports",status:"planned",line:"Salesperson wise outstanding sheets from live Tally data, tied to the ledger totals."},
+ {id:"mail",icon:"✉️",name:"Daily salesperson mail",status:"planned",line:"A short daily email per salesperson: sales, collections, overdue dealers."},
+ {id:"bank",icon:"🏦",name:"Bank reconciliation",status:"planned",line:"Match bank statements to Tally entries and flag the gaps."}
+];
+const STATUS={preview:["info","Live preview"],planned:["dup","Coming soon"]};
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const inr=n=>"₹"+Number(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const neg=n=>"−"+inr(Math.abs(n));
@@ -406,17 +425,34 @@ $$("[data-auth]").forEach(b=>b.onclick=()=>{const m=b.dataset.auth;if(m==="demo"
 $("#authSwitch").onclick=()=>openAuth(authMode==="in"?"up":"in");
 $("#useDemo").onclick=()=>{$("#auth").close();enter("demo@neuraldesk.in")};
 $("#authForm").onsubmit=e=>{e.preventDefault();const em=$("#em").value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){toast("Please enter a valid email");$("#auth").showModal();return}$("#auth").close();enter(em)};
-function enter(email){S.user=email;store.set("nd-user",email);$("#landing").style.display="none";$("#demoNote").style.display="none";$("#app").classList.add("on");$("#demoCtl").hidden=false;go(location.hash.replace("#/app/","")||"dashboard");window.scrollTo(0,0)}
+function enter(email){S.user=email;store.set("nd-user",email);$("#landing").style.display="none";$("#demoNote").style.display="none";$("#app").classList.add("on");$("#demoCtl").hidden=false;go(location.hash.replace("#/app/","")||"apps");window.scrollTo(0,0)}
 $("#signOut").onclick=()=>{store.set("nd-user","");S.user=null;S.plan=null;S.step=1;$("#app").classList.remove("on");$("#landing").style.display="";$("#demoNote").style.display="";$("#demoCtl").hidden=true;history.replaceState(null,"","#top")};
 
 /* ---------- routing ---------- */
-const TITLES={dashboard:"Dashboard",import:"Upload and import",queue:"Held items",history:"History",connection:"Connection",settings:"Settings",billing:"Plan and billing"};
-function go(r){if(!TITLES[r])r="dashboard";S.route=r;history.replaceState(null,"","#/app/"+r);$("#title").textContent=TITLES[r];$$(".nv").forEach(b=>b.classList.toggle("on",b.dataset.go===r));$("#side").classList.remove("open");render();window.scrollTo(0,0)}
+const TITLES={apps:"All tools",dashboard:"Tally Connect",import:"Upload and import",queue:"Held items",history:"History",connection:"Connection",settings:"Settings",billing:"Plan and billing"};
+function go(r){if(!TITLES[r])r="apps";S.route=r;history.replaceState(null,"","#/app/"+r);$("#title").textContent=TITLES[r];$$(".nv").forEach(b=>b.classList.toggle("on",b.dataset.go===r));$("#side").classList.remove("open");render();window.scrollTo(0,0)}
 $$(".nv").forEach(b=>b.onclick=()=>go(b.dataset.go));
 $("#hamb").onclick=()=>$("#side").classList.toggle("open");
-function render(){({dashboard:vDash,import:vImport,queue:vQueue,history:vHistory,connection:vConn,settings:vSettings,billing:vBilling})[S.route]();updateBadge();updateConn()}
+function render(){({apps:vApps,dashboard:vDash,import:vImport,queue:vQueue,history:vHistory,connection:vConn,settings:vSettings,billing:vBilling})[S.route]();updateBadge();updateConn()}
 function updateBadge(){const n=S.plan?S.plan.filter(r=>r.status==="held").length:0;$("#heldBadge").textContent=n;$("#heldBadge").style.display=n?"":"none"}
 function updateConn(){const c=$("#conn");const ok=!S.offline;c.className="pill "+(ok?"ok":"bad");c.innerHTML='<i class="dot"></i>'+(ok?"Tally connected":"Tally not reachable")}
+
+/* ---------- all tools (portal home) ---------- */
+function productCard(p,inApp){
+  const st=STATUS[p.status];
+  const act=p.route?`<button class="btn primary sm" data-open-tool="${p.id}">${inApp?"Open":"Try the demo"}</button>`:`<button class="btn sm" data-wait="${esc(p.name)}">Notify me</button>`;
+  return `<div class="card" style="padding:22px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:26px">${p.icon}</span><span class="pill ${st[0]}">${st[1]}</span></div><h3 style="font-size:18px">${esc(p.name)}</h3><p class="muted" style="margin:0;font-size:15px;flex:1">${esc(p.line)}</p><div>${act}</div></div>`;
+}
+function wireTools(root,inApp){
+  $$("[data-open-tool]",root).forEach(b=>b.onclick=()=>{const p=PRODUCTS.find(x=>x.id===b.dataset.openTool);if(inApp)go(p.route);else enter("demo@neuraldesk.in")});
+  $$("[data-wait]",root).forEach(b=>b.onclick=()=>{b.textContent="You are on the list";b.disabled=true;toast("We will tell you when "+b.dataset.wait+" is ready")});
+}
+function vApps(){
+  $("#page").innerHTML=`<p class="muted" style="margin-top:0;max-width:640px">Everything you can use with this account. New tools show up here automatically, with the same sign in and the same plan.</p><div class="feat" id="appGrid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${PRODUCTS.map(p=>productCard(p,true)).join("")}</div>
+  <div class="card panel" style="margin-top:18px"><h2>Suggest a tool</h2><p class="muted" style="margin:0 0 12px">Tell us what you type into your accounting software every day. If it repeats, we can build it.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="sugg" placeholder="For example: GST return checks" style="max-width:380px"><button class="btn" id="suggBtn">Send</button></div></div>`;
+  wireTools($("#page"),true);
+  $("#suggBtn").onclick=()=>{const v=$("#sugg").value.trim();if(!v){toast("Type a line first");return}$("#sugg").value="";toast("Thanks, noted")};
+}
 
 /* ---------- dashboard ---------- */
 function vDash(){
@@ -644,6 +680,7 @@ $("#dOffline").onchange=e=>{S.offline=e.target.checked;updateConn();if(S.route==
 $("#dTimeout").onchange=e=>{S.timeout=e.target.checked;toast(S.timeout?"The third entry will time out while posting":"Timeouts off")};
 
 /* ---------- boot ---------- */
+(function(){const g=$("#landingProducts");if(g){g.innerHTML=PRODUCTS.map(p=>productCard(p,false)).join("");wireTools(g,false)}})();
 if(store.get("nd-user")){enter(store.get("nd-user"))}
 else if(location.hash.startsWith("#/app")){enter("demo@neuraldesk.in")}
 })();
