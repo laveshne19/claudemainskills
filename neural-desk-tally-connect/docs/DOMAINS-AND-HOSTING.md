@@ -43,7 +43,7 @@ The real product later needs a server (accounts, uploads, billing, the Windows h
 In `website/index.html`, add one line to the `PRODUCTS` list near the top of the script:
 
 ```
-{id:"gst",icon:"🧮",name:"GST return checks",status:"planned",line:"One sentence on what it does."}
+{id:"gst",icon:"G",name:"GST return checks",status:"planned",line:"One sentence on what it does."}
 ```
 
 It appears on the landing page and in the app's "All tools" screen. Give it `route:"some-page"` and a view when it is ready to open.
