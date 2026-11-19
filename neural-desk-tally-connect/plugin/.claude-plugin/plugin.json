@@ -1,0 +1,10 @@
+{
+  "name": "tally-connect",
+  "version": "0.2.0",
+  "description": "Neural Desk Tally Connect. Upload invoices, bills, credit notes, debit notes, receipts and payments as Excel or PDF and post them into TallyPrime, with a preview, your confirmation, and a balance check on every entry.",
+  "author": { "name": "Neural Desk" },
+  "keywords": ["tally", "tallyprime", "accounting", "gst", "india", "invoice", "bookkeeping", "mcp"],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}
