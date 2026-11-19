@@ -8,6 +8,10 @@
   "kinds": ["debtor", "creditor"],
   "skip_zero_balance": true,
   "statement_from": "",
+  "history": [
+    {"match": "spontan", "from": "2024-04-01"},
+    {"match": "narang enterprises", "from": "2024-04-01"}
+  ],
   "debtor_groups": ["Sundry Debtors"],
   "creditor_groups": ["Sundry Creditors"]
 }

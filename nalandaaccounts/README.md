@@ -51,6 +51,27 @@ running balance for a period you choose, and a **PDF statement** button.
 - Sync data is sent over HTTPS with a key. The key lives in the agent's settings file (readable only by that Windows user) and in Netlify.
 - Not covered: this is not a bank. Anyone who can use a master or accounts account sees everything. Use strong passwords and disable people who leave.
 
+## Older history for chosen ledgers
+
+By default each statement starts at the beginning of the current financial year. To show more for particular parties, add rules to `agent.json` on the Tally PC:
+
+```json
+"history": [
+  {"match": "spontan", "from": "2024-04-01"},
+  {"match": "narang enterprises", "from": "2024-04-01"}
+]
+```
+
+`match` is a piece of the ledger name (capitals and extra spaces do not matter). Matching ledgers are sent even when their balance is zero. Keep the rules in `agent.json`: the three daily syncs then keep the long history. A one-off run with `--only` and `--from` does not change what the scheduled syncs send, so the next scheduled run would shrink the statement back.
+
+One-off, without touching the rest of the portal:
+
+```
+python -m sync_agent --config agent.json --only spontan --only "narang enterprises" --from 2024-04-01 --include-zero
+```
+
+`--only` makes it a partial run: those ledgers are added or refreshed and nothing else is removed. The program prints which Tally ledgers each rule matched, and warns when a rule matches nothing. For a start date other than 1 April of the current financial year, the opening balance is worked out from Tally's closing balance, so the "does it add up" check cannot run for those statements. Compare the first and last balances with Tally once.
+
 ## Limits and honest notes
 
 - The Tally report requests for statements and bill wise outstanding follow the standard Tally XML reports. They are tested here against a pretend Tally, **not yet against

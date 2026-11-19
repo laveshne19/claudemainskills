@@ -198,6 +198,67 @@ class AgentEndToEnd(unittest.TestCase):
         self.assertEqual(v["statement"]["rows"][-1]["balance"], v["statement"]["closing"])
 
 
+    # ---- history for named ledgers
+    def _with_history_ledgers(self):
+        """Two ledgers with 2024 entries: one still owing, one fully settled (zero balance)."""
+        base = {"group": "Sundry Debtors", "kind": "debtor", "city": "Ludhiana", "state": "Punjab", "phone": "", "gstin": "", "bills": []}
+        spon = {**base, "name": "Spontaneous Traders", "vouchers": [
+            {"date": "2024-05-10", "type": "Sales", "number": "S-1", "particulars": "Goods", "debit": 50000, "credit": 0},
+            {"date": "2024-06-01", "type": "Receipt", "number": "R-1", "particulars": "Bank", "debit": 0, "credit": 20000},
+            {"date": "2026-05-02", "type": "Sales", "number": "S-9", "particulars": "Goods", "debit": 12000, "credit": 0}],
+            "closing": {"amount": 42000, "side": "Dr"}}
+        nar = {**base, "name": "Narang  Enterprises", "vouchers": [
+            {"date": "2024-04-15", "type": "Sales", "number": "N-1", "particulars": "Goods", "debit": 30000, "credit": 0},
+            {"date": "2024-08-01", "type": "Receipt", "number": "R-2", "particulars": "Bank", "debit": 0, "credit": 30000}],
+            "closing": {"amount": 0, "side": "Dr"}}
+        self.tally.ledgers[spon["name"]] = spon
+        self.tally.ledgers[nar["name"]] = nar
+
+    def test_16_history_rules_go_back_in_time_and_keep_zero_balance_ledgers(self):
+        self._with_history_ledgers()
+        hist = [{"match": "spontan", "from": "2024-04-01"}, {"match": "narang enterprises", "from": "2024-04-01"}]
+        r = self.run_agent(cfg={"history": hist})
+        self.assertEqual(r["unmatched"], [])
+        self.assertEqual(r["history"]["narang enterprises"]["ledgers"], ["Narang  Enterprises"], "spacing in the Tally name does not stop the match")
+        d = self.portal.call("GET", "/api/dealers")
+        names = [x["name"] for x in d["rows"]]
+        self.assertIn("Spontaneous Traders", names)
+        self.assertIn("Narang  Enterprises", names, "a zero balance ledger is kept because it has a history rule")
+        row = next(x for x in d["rows"] if x["name"] == "Spontaneous Traders")
+        v = self.portal.call("GET", "/api/ledger/" + row["id"])
+        self.assertEqual([x["date"] for x in v["statement"]["rows"]][0], "2024-05-10", "statement starts in 2024")
+        self.assertEqual(len(v["statement"]["rows"]), 3)
+        self.assertEqual(v["statement"]["rows"][-1]["balance"], {"amount": 42000, "side": "Dr"})
+        nrow = next(x for x in d["rows"] if x["name"] == "Narang  Enterprises")
+        nv = self.portal.call("GET", "/api/ledger/" + nrow["id"])
+        self.assertEqual(len(nv["statement"]["rows"]), 2)
+        self.assertEqual(nv["statement"]["closing"]["amount"], 0)
+
+    def test_17_a_partial_run_keeps_the_rest_of_the_portal(self):
+        self._with_history_ledgers()
+        self.run_agent(cfg={"kinds": ["creditor"]})
+        before = len(self.portal.call("GET", "/api/dealers")["rows"])
+        self.assertEqual(before, 5)
+        r = self.run_agent(only=["spontan", "narang enterprises"], cfg={"history": [
+            {"match": "spontan", "from": "2024-04-01"}, {"match": "narang enterprises", "from": "2024-04-01"}]})
+        self.assertTrue(r["partial"])
+        self.assertEqual(r["sent"], 2)
+        d = self.portal.call("GET", "/api/dealers")
+        self.assertEqual(len(d["rows"]), before + 2, "the five creditors already there are still there")
+
+    def test_18_a_rule_that_matches_nothing_is_reported(self):
+        self._with_history_ledgers()
+        r = self.run_agent(cfg={"history": [{"match": "no such party", "from": "2024-04-01"}]}, limit=2)
+        self.assertEqual(r["unmatched"], ["no such party (from 2024-04-01)"])
+
+    def test_19_bad_history_rule_is_refused_clearly(self):
+        with self.assertRaises(agent.SyncError):
+            self.run_agent(cfg={"history": [{"match": "x", "from": "not a date"}]})
+
+    def test_20_cli_from_needs_only(self):
+        self.assertEqual(agent.main(["--config", "/nonexistent.json", "--from", "2024-04-01", "--dry-run"]), 1)
+
+
 class Parsers(unittest.TestCase):
     def test_dates(self):
         for text in ("20260401", "01-Apr-2026", "1-Apr-26", "01/04/2026", "2026-04-01"):

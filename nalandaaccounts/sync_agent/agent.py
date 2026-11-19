@@ -38,6 +38,9 @@ DEFAULTS = {
     "kinds": ["debtor", "creditor"],
     "skip_zero_balance": True,         # only ledgers that owe or are owed
     "statement_from": "",              # yyyy-mm-dd, empty = start of the current financial year
+    # Ledgers that need a longer history, whatever their balance: [{"match": "narang enterprises", "from": "2024-04-01"}]
+    # "match" is a case insensitive piece of the ledger name. These ledgers are sent even when the balance is zero.
+    "history": [],
     "batch_size": 20,
     "pause_seconds": 0.15,             # be gentle, Tally slows down under load
     "max_ledgers": 0,                  # 0 = no limit
@@ -220,26 +223,58 @@ def build_doc(led: dict, kind: str, vouchers: list[dict], bills: list[dict], d_f
     return doc
 
 
-def collect(reader: TallyReader, cfg: dict, only: str = "", limit: int = 0, dump: Path | None = None, today: dt.date | None = None):
+def norm(text: str) -> str:
+    return " ".join((text or "").lower().split())
+
+
+def history_rules(cfg: dict) -> list[dict]:
+    rules = []
+    for r in cfg.get("history") or []:
+        m, f = norm(r.get("match", "")), parse_date(r.get("from", ""))
+        if not m or not f:
+            raise SyncError(f"A history rule needs a name to match and a start date like 2024-04-01. Found: {r}", code=1)
+        rules.append({"match": m, "from": f, "found": []})
+    return rules
+
+
+def collect(reader: TallyReader, cfg: dict, only=(), limit: int = 0, dump: Path | None = None, today: dt.date | None = None):
     today = today or dt.date.today()
-    d_from = cfg["statement_from"] or fy_start(today)
+    default_from = cfg["statement_from"] or fy_start(today)
     d_to = today.isoformat()
+    only = [norm(o) for o in ([only] if isinstance(only, str) else only) if norm(o)]
+    rules = history_rules(cfg)
     groups = reader.groups()
     rows = reader.ledgers()
-    picked = []
+    picked, wrong_group = [], []
     for led in rows:
         k = kind_of(led["parent"], groups, cfg)
-        if k not in cfg["kinds"] or (only and only.lower() not in led["name"].lower()):
+        name = norm(led["name"])
+        hit = [r for r in rules if r["match"] in name]
+        for r in hit:
+            r["found"].append(led["name"])
+        if only and not any(o in name for o in only):
             continue
-        if cfg["skip_zero_balance"] and led["closing"]["amount"] == 0:
+        if k not in cfg["kinds"]:
+            if hit:
+                wrong_group.append(f"{led['name']} (group {led['parent'] or 'none'})")
             continue
-        picked.append((led, k))
+        if cfg["skip_zero_balance"] and led["closing"]["amount"] == 0 and not hit:
+            continue
+        # the earliest start wins when two rules match the same ledger
+        picked.append((led, k, min((r["from"] for r in hit), default=default_from)))
     cap = limit or cfg["max_ledgers"]
     if cap:
         picked = picked[:cap]
     log.info("%d ledgers read from Tally, %d to send", len(rows), len(picked))
+    unmatched = [f"{r['match']} (from {r['from']})" for r in rules if not r["found"]]
+    for r in rules:
+        log.info("History rule '%s' from %s matched: %s", r["match"], r["from"], ", ".join(r["found"]) or "NOTHING")
+    if unmatched:
+        log.warning("No ledger in Tally matches: %s. Check the spelling against the ledger name in Tally.", "; ".join(unmatched))
+    if wrong_group:
+        log.warning("Matched but not sent, because they are not in a debtor or creditor group: %s", "; ".join(wrong_group))
     docs, warned = [], 0
-    for i, (led, k) in enumerate(picked, 1):
+    for i, (led, k, d_from) in enumerate(picked, 1):
         vx = reader.vouchers_xml(led["name"], d_from, d_to)
         bx = reader.bills_xml(led["name"], d_from, d_to) if k in ("debtor", "creditor") else ""
         if dump and i <= 3:
@@ -253,7 +288,9 @@ def collect(reader: TallyReader, cfg: dict, only: str = "", limit: int = 0, dump
         if i % 25 == 0:
             log.info("read %d of %d", i, len(picked))
         time.sleep(cfg["pause_seconds"])
-    return docs, {"company": reader.company, "from": d_from, "to": d_to, "warned": warned}
+    return docs, {"company": reader.company, "from": default_from, "to": d_to, "warned": warned,
+                  "history": {r["match"]: {"from": r["from"], "ledgers": r["found"]} for r in rules},
+                  "unmatched": unmatched, "not_sent_wrong_group": wrong_group}
 
 
 # ------------------------------------------------------------------ sending to the portal
@@ -281,9 +318,11 @@ class Portal:
         raise SyncError(f"Could not reach the portal ({last}). Check the internet connection and the address.", code=3)
 
 
-def push(portal: Portal, docs: list[dict], meta: dict, cfg: dict) -> dict:
+def push(portal: Portal, docs: list[dict], meta: dict, cfg: dict, partial: bool = False) -> dict:
+    """A full sync makes the portal match Tally exactly (ledgers not in this run are removed).
+    A partial sync only adds or refreshes the ledgers sent and keeps everything else."""
     run = "run-" + uuid.uuid4().hex[:16]
-    portal.post("/api/sync/start", {"runId": run, "company": cfg["company_title"] or meta["company"], "full": True})
+    portal.post("/api/sync/start", {"runId": run, "company": cfg["company_title"] or meta["company"], "full": not partial})
     n = cfg["batch_size"]
     for i in range(0, len(docs), n):
         portal.post("/api/sync/ledgers", {"runId": run, "ledgers": docs[i:i + n]})
@@ -324,7 +363,7 @@ def load_config(path: str | None) -> dict:
     return cfg
 
 
-def run(cfg: dict, *, dry_run=False, limit=0, only="", dump: Path | None = None, today=None, lock_path: Path | None = None) -> dict:
+def run(cfg: dict, *, dry_run=False, limit=0, only=(), dump: Path | None = None, today=None, lock_path: Path | None = None) -> dict:
     if not dry_run and (not cfg["portal_url"] or not cfg["sync_key"]):
         raise SyncError("Set portal_url and sync_key in the agent settings first.", code=3)
     with Lock(lock_path or HOME / "sync.lock"):
@@ -336,9 +375,12 @@ def run(cfg: dict, *, dry_run=False, limit=0, only="", dump: Path | None = None,
             log.warning("%d statements do not add up to Tally's balance. They are sent with a warning.", meta["warned"])
         if dry_run:
             return {"dry_run": True, "ledgers": len(docs), **meta}
-        res = push(Portal(cfg["portal_url"], cfg["sync_key"]), docs, meta, cfg)
+        partial = bool(limit or (only if isinstance(only, str) else list(only)))
+        if partial:
+            log.info("Partial run: only these ledgers are added or refreshed, nothing else on the portal is touched.")
+        res = push(Portal(cfg["portal_url"], cfg["sync_key"]), docs, meta, cfg, partial=partial)
         log.info("Sent %s ledgers to the portal.", res.get("ledgers"))
-        return {"sent": res.get("ledgers"), "removed": res.get("removed"), **meta}
+        return {"sent": res.get("ledgers"), "removed": res.get("removed"), "partial": partial, **meta}
 
 
 def main(argv=None) -> int:
@@ -346,7 +388,9 @@ def main(argv=None) -> int:
     ap.add_argument("--config")
     ap.add_argument("--dry-run", action="store_true", help="read from Tally and check, send nothing")
     ap.add_argument("--limit", type=int, default=0, help="only the first N ledgers, for a quick test")
-    ap.add_argument("--only", default="", help="only ledgers whose name contains this text")
+    ap.add_argument("--only", action="append", default=[], help="only ledgers whose name contains this text (repeat for several). A partial run: nothing else on the portal is removed")
+    ap.add_argument("--from", dest="from_date", help="with --only: start the statements of those ledgers on this date, yyyy-mm-dd")
+    ap.add_argument("--include-zero", action="store_true", help="send ledgers even when their balance is zero")
     ap.add_argument("--debug-dump", help="folder to save the raw Tally replies for the first 3 ledgers")
     ap.add_argument("--verbose", "-v", action="store_true")
     a = ap.parse_args(argv)
@@ -354,7 +398,14 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         handlers=[logging.StreamHandler(), logging.FileHandler(HOME / "sync_agent.log", encoding="utf-8")])
     try:
-        res = run(load_config(a.config), dry_run=a.dry_run, limit=a.limit, only=a.only, dump=Path(a.debug_dump) if a.debug_dump else None)
+        cfg = load_config(a.config)
+        if a.from_date:
+            if not a.only:
+                raise SyncError("--from needs at least one --only, so it is clear which ledgers it is for.", code=1)
+            cfg["history"] = list(cfg["history"]) + [{"match": o, "from": a.from_date} for o in a.only]
+        if a.include_zero:
+            cfg["skip_zero_balance"] = False
+        res = run(cfg, dry_run=a.dry_run, limit=a.limit, only=a.only, dump=Path(a.debug_dump) if a.debug_dump else None)
         print(json.dumps(res, indent=1))
         return 0
     except SyncError as e:
