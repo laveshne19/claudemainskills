@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tally Connect</title>
+<style>
+:root{--bg:#f5f6fa;--surface:#fff;--surface2:#f0f2f8;--ink:#101828;--muted:#5d6b82;--line:#e3e7ef;--primary:#3446d4;--primary-ink:#fff;--primary-soft:#e9ecff;
+--ok:#0f9d58;--ok-soft:#e3f6ec;--warn:#b76e00;--warn-soft:#fff3da;--bad:#c9372c;--bad-soft:#fde8e6;--dup:#5d6b82;--dup-soft:#eceff5;--shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);--radius:14px}
+@media (prefers-color-scheme:dark){:root{--bg:#0c111c;--surface:#131a29;--surface2:#1a2234;--ink:#eef1f8;--muted:#9aa7c0;--line:#243049;--primary:#7b8cff;--primary-ink:#0c111c;--primary-soft:#1d2550;
+--ok:#3ccf8a;--ok-soft:#10301f;--warn:#f5b546;--warn-soft:#352610;--bad:#ff7b70;--bad-soft:#3a1714;--dup:#9aa7c0;--dup-soft:#1c2438;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:8px}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:10px;font-weight:600}
+.btn:hover{box-shadow:var(--shadow)}.btn.primary{background:var(--primary);color:var(--primary-ink);border-color:transparent}.btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn.ghost{background:transparent}a.btn{text-decoration:none;color:inherit}.btn[disabled]{opacity:.5;cursor:not-allowed;box-shadow:none}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.dup{background:var(--dup-soft);color:var(--dup)}.pill.info{background:var(--primary-soft);color:var(--primary)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.muted{color:var(--muted)}.num{font-variant-numeric:tabular-nums}.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}.panel{padding:18px}
+h1,h2,h3{margin:0;line-height:1.2}h2{font-size:17px;margin-bottom:10px}
+header{display:flex;gap:14px;align-items:center;padding:12px 22px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800}.logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#14b8a6);color:#fff;display:grid;place-items:center}
+nav{display:flex;gap:4px;margin-left:10px}nav button{border:0;background:none;padding:8px 14px;border-radius:9px;font-weight:600;color:var(--muted)}nav button.on{background:var(--primary-soft);color:var(--primary)}
+.sp{flex:1}main{max-width:1180px;margin:0 auto;padding:22px}
+input[type=text],input[type=number],input[type=date],select,textarea{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+label.f{display:grid;gap:5px;font-weight:600;font-size:13px;align-content:start}label.f .h{font-weight:400;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+.seg{display:inline-flex;background:var(--surface2);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-weight:600;color:var(--muted)}.seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px;text-align:center;background:var(--surface2)}.drop.over{border-color:var(--primary);background:var(--primary-soft)}
+.banner{padding:12px 16px;border-radius:12px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.banner.warn{background:var(--warn-soft);color:var(--warn)}.banner.bad{background:var(--bad-soft);color:var(--bad)}.banner.ok{background:var(--ok-soft);color:var(--ok)}.banner.info{background:var(--primary-soft);color:var(--primary)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px;font-weight:600;font-size:13px}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{width:100%;border-collapse:separate;border-spacing:0}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:9px 12px;background:var(--surface2);border-bottom:1px solid var(--line);position:sticky;top:0}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}tr.rw{cursor:pointer}tr.rw:hover td{background:var(--surface2)}.r{text-align:right}td.nw{white-space:nowrap}
+.detail td{background:var(--surface2)}.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:800px){.cols{grid-template-columns:1fr}}
+.mini{width:100%;font-size:13px;border-collapse:collapse}.mini td,.mini th{padding:4px 0;border-bottom:1px solid var(--line);background:none;position:static}
+.ask{margin-top:10px;background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);padding:12px;border-radius:12px}
+.ask.err{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}.ask.neutral{background:var(--dup-soft);border-color:var(--line)}
+.opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.bar{height:8px;background:var(--surface2);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#14b8a6);width:0;transition:width .3s}
+.spin{width:16px;height:16px;border:3px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:sp .8s linear infinite;display:inline-block;vertical-align:middle}@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;z-index:100;transition:.25s;pointer-events:none;max-width:92vw}.toast.on{opacity:1;transform:translateX(-50%)}
+dialog{border:1px solid var(--line);border-radius:16px;padding:0;background:var(--surface);color:var(--ink);max-width:min(460px,92vw);width:100%}dialog::backdrop{background:rgba(8,12,22,.55)}dialog .in{padding:22px;display:grid;gap:12px}
+.toggle{position:relative;width:42px;height:24px;flex:none}.toggle input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:1}.toggle span{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.15s}.toggle span::after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.15s}.toggle input:checked+span{background:var(--primary)}.toggle input:checked+span::after{transform:translateX(18px)}
+pre.diag{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:280px;overflow:auto}
+.steps{display:grid;gap:8px}.steps .s{display:flex;gap:12px;align-items:flex-start}.steps b{flex:none;width:26px;height:26px;border-radius:8px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">N</span>Tally Connect <span class="muted" style="font-weight:500">by Neural Desk</span></div>
+  <nav id="nav"><button data-tab="import">Import</button><button data-tab="setup">Setup</button><button data-tab="history">History</button><button data-tab="help">Help</button></nav>
+  <span class="sp"></span>
+  <span id="pMode"></span><span id="pWrite"></span><span id="pConn" class="pill dup"><i class="dot"></i>Checking Tally</span>
+</header>
+<main id="main"></main>
+<dialog id="dlg"><div class="in" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const TOKEN="__TOKEN__", DEMO=__DEMO__;
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const inr=n=>n==null?"":(n<0?"\u2212":"")+"₹"+Math.abs(Number(n)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("on"),3200)}
+async function api(name,body){
+  try{
+    const r=await fetch("/api/"+name,{method:"POST",headers:{"Content-Type":"application/json","X-Token":TOKEN},body:JSON.stringify(body||{})});
+    const j=await r.json();
+    if(j.tally_unreachable)S.offline=true;
+    return j;
+  }catch(e){return {ok:false,error:"Could not reach the Tally Connect program. Is its window still open?"}}
+}
+const S={tab:"import",status:null,type:"Sales",bank:"",plan:null,filter:"all",open:null,posting:false,stopped:false,search:{},form:null,disc:null,hist:null,diag:"",busy:false,offline:false};
+const TYPES=["Sales","Purchase","Credit Note","Debit Note","Receipt","Payment"];
+const ST={READY:["ok","Ready"],HELD:["warn","Held"],DUPLICATE:["dup","Duplicate"],SKIPPED:["dup","Skipped"],ERROR:["bad","Error"],POSTED:["ok","Posted"],FAILED:["bad","Not posted"]};
+
+/* ---------- boot and header ---------- */
+async function loadStatus(){
+  const j=await api("status");
+  if(j.ok){S.status=j;S.offline=!j.doctor.gateway_reachable}
+  paintHeader();
+}
+function paintHeader(){
+  const st=S.status,d=st&&st.doctor;
+  const c=$("#pConn");
+  if(!st){return}
+  const ok=d.gateway_reachable&&d.company_loaded;
+  c.className="pill "+(ok?"ok":"bad");c.innerHTML='<i class="dot"></i>'+(ok?esc(st.settings.company||d.companies[0]||"Tally connected"):(d.gateway_reachable?"No company open":"Tally not reachable"));
+  $("#pMode").innerHTML=DEMO?'<span class="pill warn">DEMO: simulated Tally</span>':"";
+  $("#pWrite").innerHTML=st.settings.read_only?'<span class="pill info">Read only</span>':"";
+  $$("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===S.tab));
+}
+$("#nav").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.tab=b.dataset.tab;render()});
+function render(){paintHeader();({import:vImport,setup:vSetup,history:vHistory,help:vHelp})[S.tab]()}
+
+function setupBanner(){
+  const st=S.status;if(!st)return "";
+  if(!st.doctor.gateway_reachable)return `<div class="banner bad"><b>Tally is not reachable.</b><span>${esc((st.doctor.next_steps||[]).slice(0,2).join(" "))}</span><button class="btn sm" data-act="goto" data-tab="setup">Open Setup</button></div>`;
+  if(!st.doctor.company_loaded)return `<div class="banner bad"><b>No company is open in Tally.</b> Open one, then check again. <button class="btn sm" data-act="recheck">Check again</button></div>`;
+  if(!st.setup_complete)return `<div class="banner warn"><b>Finish setup first.</b> The company GSTIN and state decide the GST split. <button class="btn sm" data-act="goto" data-tab="setup">Open Setup</button></div>`;
+  return "";
+}
+
+/* ---------- import ---------- */
+function vImport(){
+  const main=$("#main");
+  const needBank=S.type==="Receipt"||S.type==="Payment";
+  main.innerHTML=setupBanner()+`
+  <div class="card panel"><h2>1. What are you uploading?</h2>
+    <div class="seg" id="typeSeg">${TYPES.map(t=>`<button data-type="${t}" class="${S.type===t?"on":""}">${t==="Sales"?"Sales invoices":t==="Purchase"?"Purchase bills":t==="Credit Note"?"Credit notes":t==="Debit Note"?"Debit notes":t==="Receipt"?"Receipts (money in)":"Payments (money out)"}</button>`).join("")}</div>
+    ${needBank?`<div style="margin-top:12px;max-width:420px"><label class="f">Bank or cash ledger <span class="h">used when the sheet has no bank column</span><input type="text" id="bank" value="${esc(S.bank)}" placeholder="For example: HDFC BANK"></label></div>`:""}
+    <h2 style="margin-top:18px">2. Choose the file</h2>
+    <div class="drop" id="dz"><b>Drop an Excel or CSV file here</b><p class="muted" style="margin:6px 0 12px">One row per item. Rows with the same invoice number become one invoice. PDFs and photos are read by Claude in chat.</p>
+      <button class="btn primary" data-act="pick">Choose file</button> ${DEMO?'<button class="btn" data-act="sample">Use the demo sample</button>':""}
+      <a class="btn ghost" id="tpl" href="/api/template?name=${tplName()}&t=${TOKEN}">Download a blank template</a>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png" hidden></div>
+    <div id="busy" class="muted" style="margin-top:10px">${S.busy?'<span class="spin"></span> Reading and checking your file against Tally...':""}</div>
+  </div>
+  <div id="planBox"></div>`;
+  wireDrop();
+  if(S.plan)renderPlan();
+}
+function tplName(){return {Sales:"sales_invoices.xlsx",Purchase:"purchase_bills.xlsx","Credit Note":"credit_notes.xlsx","Debit Note":"debit_notes.xlsx",Receipt:"receipts.xlsx",Payment:"payments.xlsx"}[S.type]}
+function wireDrop(){
+  const dz=$("#dz"),f=$("#file");if(!dz)return;
+  f.onchange=()=>{if(f.files[0])upload(f.files[0])};
+  ["dragenter","dragover"].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.add("over")}));
+  ["dragleave","drop"].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.remove("over")}));
+  dz.addEventListener("drop",x=>{if(x.dataTransfer.files[0])upload(x.dataTransfer.files[0])});
+}
+function b64(buf){let s="";const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)}
+async function upload(file){
+  const bank=$("#bank");if(bank)S.bank=bank.value.trim();
+  S.busy=true;S.plan=null;vImport();
+  const buf=await file.arrayBuffer();
+  const j=await api("plan",{filename:file.name,data:b64(buf),type:S.type,bank:S.bank});
+  S.busy=false;afterPlan(j);
+}
+async function useSample(){S.busy=true;S.plan=null;S.type="Sales";vImport();afterPlan(await api("plan",{sample:true}))}
+function afterPlan(j){
+  S.busy=false;
+  if(!j.ok){vImport();$("#planBox").innerHTML=`<div class="banner bad" style="margin-top:14px">${esc(j.error||"Something went wrong.")}</div>`;return}
+  S.plan=j;S.filter="all";S.open=null;S.posting=false;S.stopped=false;vImport();
+}
+
+function counts(){return S.plan.counts}
+function renderPlan(){
+  const P=S.plan,c=P.counts,rows=P.rows.filter(r=>S.filter==="all"||r.status===S.filter);
+  const chips=["all","READY","HELD","DUPLICATE","SKIPPED","ERROR","POSTED","FAILED"].filter(k=>k==="all"||c[k]);
+  $("#planBox").innerHTML=`
+  <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <span class="pill ok">${c.READY||0} ready · ${inr(P.ready_total)}</span><span class="pill warn">${c.HELD||0} held</span><span class="pill dup">${(c.DUPLICATE||0)+(c.SKIPPED||0)} skipped or duplicate</span><span class="pill bad">${c.ERROR||0} error</span>
+    ${(c.POSTED||0)?`<span class="pill ok">${c.POSTED} posted</span>`:""}${(c.FAILED||0)?`<span class="pill bad">${c.FAILED} not posted</span>`:""}
+    <span class="muted" style="margin-left:auto;font-size:13px">${esc(P.filename)} · ${esc(P.type)}</span></div>
+  ${P.notes.length?`<p class="muted" style="font-size:13px;margin:8px 0 0">${esc(P.notes.join(" "))}</p>`:""}
+  ${P.series_gaps.length?`<div class="banner warn" style="margin-top:10px"><b>Gaps in the number series:</b> ${esc(P.series_gaps.join(", "))}. The series should stay complete, so check these before posting.</div>`:(P.type!=="Receipt"&&P.type!=="Payment"?`<p style="margin:8px 0 0"><span class="pill ok">Series complete</span> <span class="muted" style="font-size:13px">No missing numbers. Dates are read day first.</span></p>`:"")}
+  <div class="chips">${chips.map(k=>`<button class="chip ${S.filter===k?"on":""}" data-act="filter" data-f="${k}">${k==="all"?"All "+P.rows.length:ST[k][1]+" "+c[k]}</button>`).join("")}</div>
+  <div class="tblwrap"><table><thead><tr><th>No.</th><th>Date</th><th>Party in file</th><th>Tally ledger</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>
+  ${rows.map(r=>rowHtml(r)).join("")}</tbody></table></div>
+  <div style="display:flex;gap:10px;justify-content:space-between;margin-top:16px;flex-wrap:wrap;align-items:center">
+    <div><button class="btn" data-act="report">Download report (CSV)</button></div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="muted" style="font-size:13px">${c.HELD?c.HELD+" held entr"+(c.HELD>1?"ies":"y")+" will wait. ":""}Only ready entries are posted.</span>
+    <button class="btn primary" id="postBtn" data-act="askpost" ${(c.READY&&!S.posting&&!(S.status&&S.status.settings.read_only))?"":"disabled"}>Post ${c.READY||0} ready entr${(c.READY||0)===1?"y":"ies"}</button></div></div>
+  ${S.status&&S.status.settings.read_only?'<p class="muted" style="text-align:right;margin:8px 0 0">Read only mode is on in Setup, so nothing can be posted.</p>':""}
+  <div id="postBox"></div>`;
+}
+function rowHtml(r){
+  const st=ST[r.status]||["dup",r.status];
+  let h=`<tr class="rw" data-act="toggle" data-i="${r.i}"><td class="nw"><b>${esc(r.number||"-")}</b></td><td class="nw num">${esc(r.date)}</td><td>${esc(r.party)}</td><td>${r.tally_party?esc(r.tally_party):'<span class="muted">not found</span>'}</td><td class="r nw num">${inr(r.total)}</td><td class="nw"><span class="pill ${st[0]}"><i class="dot"></i>${st[1]}</span></td></tr>`;
+  if(S.open===r.i)h+=`<tr class="detail"><td colspan="6">${detailHtml(r)}</td></tr>`;
+  return h;
+}
+function detailHtml(r){
+  let left="",right="";
+  if(r.lines){
+    left=`<b>Lines</b><table class="mini"><thead><tr><th>Item in file</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Taxable</th></tr></thead><tbody>${r.lines.map(l=>`<tr><td>${esc(l.source)}${l.matched?(l.matched!==l.source?`<div class="muted">matched to ${esc(l.matched)}</div>`:""):`<div style="color:var(--warn)">${l.status==="ambiguous"?"several similar items in Tally":"no matching item in Tally"}</div>`}</td><td class="r num">${l.qty}</td><td class="r num">${l.rate.toFixed(2)}</td><td class="r num">${l.taxable.toFixed(2)}</td></tr>`).join("")}</tbody></table>`;
+    if(r.tax)right=`<b>GST and total</b><table class="mini"><tbody><tr><td>Taxable value</td><td class="r num">${r.taxable.toFixed(2)}</td></tr>${r.tax.map(t=>`<tr><td>${esc(t[0])}</td><td class="r num">${t[1].toFixed(2)}</td></tr>`).join("")}${r.round_off?`<tr><td>ROUND OFF</td><td class="r num">${r.round_off.toFixed(2)}</td></tr>`:""}<tr><td><b>Total after tax</b></td><td class="r num"><b>${r.total.toFixed(2)}</b></td></tr></tbody></table><p class="muted" style="font-size:12px;margin:6px 0 0">Place of supply: ${esc(r.place||"")}</p>`;
+  }else if(r.pay){
+    left=`<b>Entry</b><table class="mini"><tbody><tr><td>Bank or cash ledger</td><td class="r">${esc(r.pay.bank||"not set")}</td></tr><tr><td>Reference</td><td class="r">${esc(r.pay.reference||"-")}</td></tr><tr><td>Narration</td><td class="r">${esc(r.pay.narration||"-")}</td></tr></tbody></table>`;
+  }
+  let extra="";
+  if(r.result)extra+=resultHtml(r);
+  else if(r.status==="HELD")extra+=askHtml(r);
+  else if(r.reasons.length)extra+=`<div class="ask ${r.status==="ERROR"?"err":"neutral"}">${r.reasons.map(esc).join("<br>")}</div>`;
+  if(r.status==="READY"&&r.reasons.length===0&&r.notes.length)extra+=``;
+  return `<div class="cols"><div>${left}</div><div>${right}</div></div>${r.notes.length?`<p class="muted" style="margin:10px 0 0;font-size:13px">ℹ️ ${r.notes.map(esc).join(" ")}</p>`:""}${extra}`;
+}
+function resultHtml(r){
+  const x=r.result;
+  if(x.ok)return `<div class="ask" style="background:var(--ok-soft);border-color:transparent;color:var(--ok)"><b>Posted and verified.</b> ${x.balance_delta?`The party balance moved by ${inr(x.balance_delta.actual)}, expected ${inr(x.balance_delta.expected)}.`:""} ${esc(x.note||"")}</div>`;
+  return `<div class="ask err"><b>Not posted.</b> ${(x.problems||[]).map(esc).join(" ")}</div>`;
+}
+function askHtml(r){
+  let h=`<div class="ask"><b>Decision needed</b>${r.questions.map(q=>`<p style="margin:6px 0 0">${esc(q)}</p>`).join("")}`;
+  const kinds=new Set(r.kinds);
+  if(kinds.has("party")){
+    h+=`<div class="opts">${(r.party_candidates||[]).map(c=>`<button class="btn sm" data-act="mapparty" data-i="${r.i}" data-name="${esc(c[0])}">Use "${esc(c[0])}"</button>`).join("")}</div>`;
+    h+=searchHtml(r.i,"ledger","Search another Tally ledger","mapparty");
+    h+=`<div class="opts"><button class="btn sm primary" data-act="newledger" data-i="${r.i}">Create a new ledger</button></div>${S.form&&S.form.i===r.i?ledgerFormHtml(r):""}`;
+  }
+  if(kinds.has("item")&&r.lines){
+    r.lines.filter(l=>!l.matched).forEach((l,k)=>{
+      h+=`<div style="margin-top:10px"><b style="font-size:13px">"${esc(l.source)}"</b><div class="opts">${l.candidates.map(c=>`<button class="btn sm" data-act="mapitem" data-i="${r.i}" data-source="${esc(l.source)}" data-name="${esc(c[0])}">Use "${esc(c[0])}"</button>`).join("")}</div>${searchHtml(r.i,"item","Search Tally stock items","mapitem",l.source)}</div>`;
+    });
+    h+=`<p class="muted" style="font-size:13px;margin:8px 0 0">To add a brand new stock item, create it in Tally first (with its group, unit and HSN), then press Check again.</p><div class="opts"><button class="btn sm" data-act="recheckrow" data-i="${r.i}">Check again</button></div>`;
+  }
+  if(kinds.has("bank"))h+=searchHtml(r.i,"ledger","Search your bank or cash ledger","setbank");
+  if(kinds.has("ledger")||kinds.has("state")||kinds.has("setup"))h+=`<div class="opts"><button class="btn sm" data-act="goto" data-tab="setup">Open Setup</button><button class="btn sm" data-act="recheckrow" data-i="${r.i}">Check again</button></div>`;
+  h+=`<div class="opts">${r.can_approve?`<button class="btn sm primary" data-act="approve" data-i="${r.i}">Yes, approve this entry</button>`:""}<button class="btn sm ghost" data-act="skip" data-i="${r.i}">Skip this one</button></div></div>`;
+  return h;
+}
+function searchHtml(i,kind,label,act,source){
+  const key=i+kind+(source||"");const res=S.search[key]||[];
+  return `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input type="text" style="max-width:300px" id="q-${esc(key)}" placeholder="${esc(label)}" data-key="${esc(key)}"><button class="btn sm" data-act="search" data-kind="${kind}" data-key="${esc(key)}">Search</button></div>
+  <div class="opts">${res.map(n=>`<button class="btn sm" data-act="${act}" data-i="${i}" data-source="${esc(source||"")}" data-name="${esc(n)}">Use "${esc(n)}"</button>`).join("")}</div>`;
+}
+function ledgerFormHtml(r){
+  const f=S.form,sup=(S.plan.type==="Purchase"||S.plan.type==="Debit Note");
+  return `<div style="margin-top:10px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px"><b>New ledger</b><p class="muted" style="font-size:13px;margin:4px 0 8px">New ledgers are created complete, never as a bare name.</p>
+  <div class="grid2"><label class="f">Ledger name<input type="text" id="lf-name" value="${esc(f.name)}"></label>
+  <label class="f">Group<select id="lf-parent"><option ${!sup?"selected":""}>Sundry Debtors</option><option ${sup?"selected":""}>Sundry Creditors</option></select></label>
+  <label class="f">Registration<select id="lf-reg"><option>Unregistered</option><option>Regular</option></select></label>
+  <label class="f">GSTIN<input type="text" id="lf-gstin" maxlength="15" placeholder="Only if registered" value="${esc(f.gstin||"")}"></label>
+  <label class="f">State<input type="text" id="lf-state" value="${esc(f.state||"")}"></label>
+  <label class="f">Pincode<input type="text" id="lf-pin" maxlength="6" inputmode="numeric" value="${esc(f.pin||"")}"></label></div>
+  <label class="f" style="margin-top:10px">Address<textarea id="lf-addr" rows="3" placeholder="Up to 4 lines, one per line">${esc(f.addr||"")}</textarea></label>
+  <div class="opts"><button class="btn sm" data-act="ledgercheck" data-i="${r.i}">Check details</button></div>
+  ${f.preview?`<div style="margin-top:10px">${(f.preview.warnings||[]).map(w=>`<div class="banner warn" style="margin-bottom:6px;padding:8px 12px">${esc(w)}</div>`).join("")}
+   <label style="display:flex;gap:8px;align-items:flex-start;margin-top:6px"><input type="checkbox" id="lf-ok" ${(f.preview.summary.missing_details||[]).length?"disabled":""}> <span>I approve creating this ledger in Tally.</span></label>
+   <div class="opts"><button class="btn sm primary" id="lf-go" data-act="ledgercreate" data-i="${r.i}" ${(f.preview.summary.missing_details||[]).length?"disabled":""}>Create ledger in Tally</button></div></div>`:""}</div>`;
+}
+
+/* ---------- actions ---------- */
+document.addEventListener("click",async e=>{
+  const el=e.target.closest("[data-act]");if(!el)return;
+  const a=el.dataset.act,i=el.dataset.i!==undefined?+el.dataset.i:null;
+  if(el.tagName==="A")return;
+  if(a==="toggle"){S.open=S.open===i?null:i;S.form=null;renderPlan();return}
+  e.stopPropagation();
+  if(a==="goto"){S.tab=el.dataset.tab;render();return}
+  if(a==="recheck"){await loadStatus();render();return}
+  if(a==="pick"){$("#file").click();return}
+  if(a==="sample"){useSample();return}
+  if(a==="filter"){S.filter=el.dataset.f;renderPlan();return}
+  if(a==="report"){report();return}
+  if(a==="askpost"){askPost();return}
+  if(a==="search"){const key=el.dataset.key,q=$("#q-"+CSS.escape(key)).value.trim();if(!q)return toast("Type a few letters first");const j=await api("search",{kind:el.dataset.kind,q});S.search[key]=j.names||[];renderPlan();return}
+  if(a==="mapparty"||a==="mapitem"||a==="setbank"||a==="skip"||a==="approve"||a==="recheckrow"){
+    const body={plan_id:S.plan.plan_id,row:i,action:a==="mapparty"?"map_party":a==="mapitem"?"map_item":a==="setbank"?"set_bank":a==="recheckrow"?"recheck":a};
+    if(a==="mapparty"||a==="mapitem")body.tally_name=el.dataset.name;if(a==="mapitem")body.source=el.dataset.source;if(a==="setbank")body.bank=el.dataset.name;
+    const j=await api("resolve",body);if(!j.ok)return toast(j.error);S.plan=j;S.form=null;toast(a==="skip"?"Skipped":a==="approve"?"Approved":a==="recheckrow"?"Checked again":"Saved. Next time this name matches automatically.");renderPlan();return}
+  if(a==="newledger"){const r=S.plan.rows[i];S.form={i,name:r.party,state:"",pin:"",addr:"",gstin:"",preview:null};renderPlan();return}
+  if(a==="ledgercheck"){
+    const f=S.form;f.name=$("#lf-name").value.trim();f.gstin=$("#lf-gstin").value.trim();f.state=$("#lf-state").value.trim();f.pin=$("#lf-pin").value.trim();f.addr=$("#lf-addr").value;
+    const j=await api("ledger/preview",{name:f.name,parent:$("#lf-parent").value,registration_type:$("#lf-reg").value,gstin:f.gstin,state:f.state,pincode:f.pin,address:f.addr.split("\n")});
+    if(!j.ok)return toast(j.error);f.preview=j;f.parent=$("#lf-parent").value;f.reg=$("#lf-reg").value;renderPlan();
+    $("#lf-parent").value=f.parent;$("#lf-reg").value=f.reg;return}
+  if(a==="ledgercreate"){
+    if(!$("#lf-ok").checked)return toast("Tick the box to approve creating the ledger");
+    const j=await api("ledger/confirm",{preview_id:S.form.preview.preview_id,plan_id:S.plan.plan_id});
+    if(!j.ok)return toast((j.problems||[j.error||"Tally did not accept it."]).join(" "));
+    S.plan=j.plan;S.form=null;toast("Ledger created in Tally");renderPlan();return}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("input[data-key]")){const b=$(`button[data-act="search"][data-key="${CSS.escape(e.target.dataset.key)}"]`);if(b)b.click()}});
+
+/* ---------- posting ---------- */
+function askPost(){
+  const c=S.plan.counts;
+  $("#dlgBody").innerHTML=`<h2 style="font-size:19px">Post ${c.READY} entries to Tally?</h2><p class="muted" style="margin:0">You are about to post <b>${c.READY}</b> ${esc(S.plan.type.toLowerCase())} entries totalling <b>${inr(S.plan.ready_total)}</b> into <b>${esc((S.status.settings.company)||"the open company")}</b>.${DEMO?" This is the simulated Tally.":""}</p>
+  <p class="muted" style="margin:0">Each one is checked against the party balance afterwards. If anything fails, posting stops.</p>
+  <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cf" style="margin-top:4px"> <span>I have reviewed these entries and approve posting them.</span></label>
+  <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" id="cfNo">Cancel</button><button class="btn primary" id="cfYes" disabled>Post now</button></div>`;
+  const d=$("#dlg");d.showModal();$("#cf").onchange=e=>$("#cfYes").disabled=!e.target.checked;$("#cfNo").onclick=()=>d.close();$("#cfYes").onclick=()=>{d.close();runPost()};
+}
+async function runPost(){
+  S.posting=true;S.stopped=false;S.open=null;
+  const ids=S.plan.rows.filter(r=>r.status==="READY").map(r=>r.i);let done=0;
+  renderPlan();paintPost(0,ids.length,"");
+  for(const i of ids){
+    paintPost(done,ids.length,"Posting "+S.plan.rows[i].number+"...");
+    const j=await api("post_row",{plan_id:S.plan.plan_id,row:i});
+    if(!j.ok){toast(j.error||"Could not post");S.stopped=true;break}
+    S.plan.rows[i]=j.row;
+    if(j.result.ok){done++;S.plan.counts.READY--;S.plan.counts.POSTED=(S.plan.counts.POSTED||0)+1}
+    else if(j.row.status==="DUPLICATE"){S.plan.counts.READY--;S.plan.counts.DUPLICATE=(S.plan.counts.DUPLICATE||0)+1;continue}
+    else{S.stopped=true;S.plan.counts.READY--;S.plan.counts.FAILED=(S.plan.counts.FAILED||0)+1;break}
+  }
+  S.posting=false;S.plan.ready_total=S.plan.rows.filter(r=>r.status==="READY").reduce((a,r)=>a+(r.total||0),0);
+  const fresh=await api("plan_get",{plan_id:S.plan.plan_id});if(fresh.ok)S.plan=fresh;
+  renderPlan();paintPost(done,ids.length,"",true);loadStatus();
+}
+function paintPost(done,total,msg,fin){
+  const box=$("#postBox");if(!box)return;
+  const pct=total?Math.round(done/total*100):0;
+  box.innerHTML=`<div class="card panel" style="margin-top:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><b>${fin?(S.stopped?"Stopped after a problem":"All done"):"Posting to Tally"}</b><span class="muted">${done} of ${total} posted and verified ${msg?"· "+esc(msg):""}</span></div><div class="bar"><i style="width:${pct}%"></i></div>
+  ${fin&&S.stopped?`<div class="banner bad" style="margin:12px 0 0"><b>Posting stopped.</b> Nothing else was posted on top of a problem. Open the entry marked "Not posted" to see why, check Tally, then fix it and read the file again.</div>`:""}
+  ${fin&&!S.stopped?`<div class="banner ok" style="margin:12px 0 0"><b>${done} entries posted.</b> Every balance check matched. Held and skipped entries were left alone.</div>`:""}</div>`;
+}
+function report(){
+  const P=S.plan,q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const lines=[["Type","Number","Date","Party in file","Tally ledger","Total","Status","Notes"].map(q).join(",")];
+  P.rows.forEach(r=>lines.push([r.type,r.number,r.date,r.party,r.tally_party,r.total,r.status,(r.reasons.concat(r.notes)).join(" | ")].map(q).join(",")));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tally-connect-report.csv";a.click();
+}
+
+/* ---------- setup ---------- */
+function vSetup(){
+  const st=S.status;if(!st){$("#main").innerHTML='<p class="muted">Loading...</p>';return}
+  const s=st.settings,d=st.doctor;
+  $("#main").innerHTML=`
+  <div class="grid2" style="align-items:start">
+  <div class="card panel"><h2>1. Connection</h2>
+    <div class="banner ${d.gateway_reachable&&d.company_loaded?"ok":"bad"}" style="margin-bottom:10px">${d.gateway_reachable?(d.company_loaded?"Connected. Companies open: "+esc(d.companies.join(", ")):"Tally answered but no company is open."):"Tally is not reachable."}</div>
+    ${(d.next_steps||[]).length&&!(d.gateway_reachable&&d.company_loaded)?`<ol style="margin:0 0 10px;padding-left:20px;font-size:14px">${d.next_steps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>`:""}
+    ${DEMO?'<p class="muted" style="font-size:13px">Demo mode uses a built in simulated Tally.</p>':`<div class="grid2"><label class="f">Tally on this PC or address<input type="text" id="host" value="${esc(s.host)}"></label><label class="f">Port<input type="number" id="port" value="${esc(s.port)}"></label></div>`}
+    <div class="opts"><button class="btn primary" data-sact="test">Test connection</button></div>
+  </div>
+  <div class="card panel"><h2>2. Your company</h2>
+    <div class="grid2"><label class="f">Company in Tally<select id="company">${(d.companies||[]).map(c=>`<option ${c===s.company?"selected":""}>${esc(c)}</option>`).join("")||`<option>${esc(s.company||"")}</option>`}</select></label>
+    <label class="f">Company GSTIN<input type="text" id="gstin" maxlength="15" value="${esc(s.company_gstin)}"></label>
+    <label class="f">Company state <span class="h">decides IGST or CGST+SGST</span><input type="text" id="cstate" value="${esc(s.company_state)}"></label>
+    <label class="f">Default godown<input type="text" id="godown" value="${esc(s.default_godown)}"></label>
+    <label class="f">Default batch<input type="text" id="batch" value="${esc(s.default_batch)}"></label>
+    <label class="f">Freeze date <span class="h">nothing before it is touched</span><input type="date" id="freeze" value="${esc(s.freeze_before||"")}"></label></div>
+    <label class="f" style="margin-top:10px">Skip these invoice prefixes or numbers <span class="h">comma separated, for example DC-, DCCASH</span><input type="text" id="skip" value="${esc((s.skip_number_prefixes||[]).concat(s.skip_numbers||[]).join(", "))}"></label>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:12px"><span class="toggle"><input type="checkbox" id="ro" ${s.read_only?"checked":""}><span></span></span><div><b>Read only mode</b><div class="muted" style="font-size:13px">Nothing can be written to Tally. Good for the first day.</div></div></div>
+    <div style="display:flex;gap:12px;align-items:center;margin-top:12px"><span class="toggle"><input type="checkbox" id="bill" ${s.send_bill_allocations?"checked":""}><span></span></span><div><b>Tie each invoice to a bill</b><div class="muted" style="font-size:13px">Sends the invoice number as the bill reference. Turn off only if your first test looks wrong in Tally's outstanding report.</div></div></div>
+    <div class="opts"><button class="btn primary" data-sact="save">Save</button></div>
+  </div></div>
+  <div class="card panel" style="margin-top:16px"><h2>3. Ledger names in your Tally</h2>
+    <p class="muted" style="margin:0 0 10px">Every company names its GST and sales ledgers differently. Scan your Tally, check each name, and save.</p>
+    <button class="btn" data-sact="scan">Scan my Tally</button>
+    <div id="discBox" style="margin-top:12px">${ledgerNamesHtml()}</div></div>`;
+}
+const LABELS={cgst_out:"CGST on sales",sgst_out:"SGST on sales",utgst_out:"UTGST on sales",igst_out:"IGST on sales",cgst_in:"CGST on purchases",sgst_in:"SGST on purchases",utgst_in:"UTGST on purchases",igst_in:"IGST on purchases",round_off:"Round off",sales_local:"Sales, same state (use {rate} for the GST rate)",sales_igst:"Sales, other state",purchase_local:"Purchase, same state",purchase_igst:"Purchase, other state"};
+function ledgerNamesHtml(){
+  const s=S.status.settings,found=(S.disc&&S.disc.proposed_ledger_names)||{};
+  return `<div class="grid2">${Object.keys(LABELS).map(k=>`<label class="f">${esc(LABELS[k])}${found[k]&&found[k]!==s.ledgers[k]?` <span class="pill warn">found: ${esc(found[k])}</span>`:""}<input type="text" data-led="${k}" value="${esc(found[k]||s.ledgers[k])}"></label>`).join("")}</div>
+  ${S.disc?`<p class="muted" style="font-size:13px;margin:10px 0 0">Sales ledgers found: ${esc(S.disc.sales_ledgers.join(", ")||"none")}. Purchase ledgers: ${esc(S.disc.purchase_ledgers.join(", ")||"none")}. Banks and cash: ${esc(S.disc.bank_and_cash.join(", ")||"none")}. ${S.disc.counts.ledgers} ledgers and ${S.disc.counts.stock_items} stock items read.</p>`:""}
+  <div class="opts"><button class="btn primary" data-sact="saveled">Save ledger names</button></div>`;
+}
+document.addEventListener("click",async e=>{
+  const el=e.target.closest("[data-sact]");if(!el)return;const a=el.dataset.sact;
+  if(a==="test"){
+    if(!DEMO){const j=await api("settings",{connection:{host:$("#host").value.trim(),port:+$("#port").value||9000}});if(!j.ok)return toast(j.error)}
+    await loadStatus();render();toast(S.status.doctor.gateway_reachable&&S.status.doctor.company_loaded?"Connected to Tally":"Tally did not answer. Follow the steps shown.");return}
+  if(a==="save"){
+    const j=await api("settings",{changes:{company:$("#company").value,company_gstin:$("#gstin").value.trim().toUpperCase(),company_state:$("#cstate").value.trim(),default_godown:$("#godown").value.trim(),default_batch:$("#batch").value.trim(),freeze_before:$("#freeze").value||null,skip_number_prefixes:$("#skip").value,read_only:$("#ro").checked,send_bill_allocations:$("#bill").checked}});
+    if(!j.ok)return toast(j.error);await loadStatus();render();toast("Saved");return}
+  if(a==="scan"){el.disabled=true;el.textContent="Scanning...";const j=await api("discover");el.disabled=false;el.textContent="Scan my Tally";if(!j.ok)return toast(j.error);S.disc=j;$("#discBox").innerHTML=ledgerNamesHtml();toast("Read your ledgers. Check the names below.");return}
+  if(a==="saveled"){
+    const led={};$$("[data-led]").forEach(i=>led[i.dataset.led]=i.value.trim());
+    const j=await api("settings",{changes:{ledgers:led}});if(!j.ok)return toast(j.error);await loadStatus();toast("Ledger names saved");return}
+});
+
+/* ---------- history ---------- */
+async function vHistory(){
+  $("#main").innerHTML='<p class="muted">Loading...</p>';
+  const j=await api("history");const it=j.items||[];
+  $("#main").innerHTML=`<div class="card panel"><h2>Everything posted from this PC</h2>${it.length?`<div class="tblwrap"><table><thead><tr><th>When</th><th>Type</th><th>Number</th><th>Party</th><th class="r">Amount</th><th>Result</th></tr></thead><tbody>${it.map(e=>`<tr><td class="nw">${esc(e.at||"")}</td><td>${esc(e.voucher_type||"")}</td><td>${esc(e.number||"-")}</td><td>${esc(e.party||"")}</td><td class="r num">${inr(e.total)}</td><td>${e.ok?(e.verified===false?'<span class="pill bad">Balance mismatch</span>':'<span class="pill ok">Verified</span>'):'<span class="pill bad">Not posted</span>'}${e.timeout?' <span class="muted">(Tally timed out, confirmed by balance)</span>':""}</td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">Nothing posted yet.</p>'}</div>`;
+}
+
+/* ---------- help ---------- */
+function vHelp(){
+  $("#main").innerHTML=`<div class="grid2" style="align-items:start"><div class="card panel"><h2>How it works</h2><div class="steps">
+   <div class="s"><b>1</b><div><b>Setup once.</b> Open Tally and your company, set Tally to Server mode (F1 Help, Settings, Connectivity, port 9000), then fill in Setup.</div></div>
+   <div class="s"><b>2</b><div><b>Choose the type and the file.</b> Excel or CSV. A blank template is on the Import screen.</div></div>
+   <div class="s"><b>3</b><div><b>Review.</b> Ready, held, duplicate, error. Answer the held questions.</div></div>
+   <div class="s"><b>4</b><div><b>Post.</b> You approve once. Each entry is checked against the party balance and posting stops at the first problem.</div></div></div>
+   <p class="muted" style="font-size:13px;margin:12px 0 0">PDFs and photos: use Claude with the Tally Connect plugin. It reads them, then posts through the same checks.</p></div>
+  <div class="card panel"><h2>Something looks different in Tally?</h2><div class="steps">
+   <div class="s"><b>1</b><div>Take a screenshot of the voucher or the message in Tally (Windows key + Shift + S).</div></div>
+   <div class="s"><b>2</b><div>Press the button below. It copies a short report with your settings and recent results. It never contains passwords.</div></div>
+   <div class="s"><b>3</b><div>Paste both into your chat with Claude and say what you expected. It finds the one difference and tells you which setting to change.</div></div></div>
+   <div class="opts"><button class="btn primary" data-hact="diag">Copy diagnostics</button></div><pre class="diag" id="diag" ${S.diag?"":"hidden"}>${esc(S.diag)}</pre></div></div>`;
+}
+document.addEventListener("click",async e=>{
+  const el=e.target.closest("[data-hact]");if(!el)return;
+  const j=await api("diagnostics");S.diag=j.text||j.error;const p=$("#diag");p.hidden=false;p.textContent=S.diag;
+  try{await navigator.clipboard.writeText(S.diag);toast("Copied. Paste it into your chat with Claude.")}catch(_){toast("Select the text below and copy it.")}
+});
+
+loadStatus().then(render);
+})();
+</script>
+</body>
+</html>

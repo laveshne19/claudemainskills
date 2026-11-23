@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tally-connect": {
+      "command": "tally-connect-mcp",
+      "args": []
+    }
+  }
+}

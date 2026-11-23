@@ -1,0 +1,13 @@
+{
+  "name": "neural-desk",
+  "owner": { "name": "Neural Desk" },
+  "plugins": [
+    {
+      "name": "tally-connect",
+      "source": "./plugin",
+      "description": "Post sales, purchase, credit note, debit note, receipt and payment entries into TallyPrime from Claude. Upload an Excel or PDF, review, confirm, done.",
+      "version": "0.2.0",
+      "category": "finance"
+    }
+  ]
+}
